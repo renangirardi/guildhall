@@ -13,6 +13,7 @@ projeto do zero. A metáfora do projeto é de aventura/RPG: guildas definem
 padrões, heróis (agentes) executam missões (aplicações) seguindo esses padrões.
 
 **Objetivo duplo:**
+
 1. Ter um pipeline real e funcional para criar projetos pessoais mais rápido e
    com mais consistência.
 2. Servir como peça de portfólio para currículo, visando empresas globais —
@@ -26,14 +27,14 @@ estrutura de Guilds como pacote/CLI.
 
 ## 2. Terminologia (glossário)
 
-| Termo | Definição |
-|---|---|
-| **Guild** | Conjunto de padrões e decisões reutilizáveis (arquitetura, segurança, estilo de código, etc.) que qualquer Quest deve seguir. Não contém código de aplicação. |
-| **Quest** | Uma aplicação/projeto individual construído a partir dos padrões das Guilds (antes chamado de "Program"). |
-| **Quest Brief** | O documento de requisitos de uma Quest (antes chamado de "PRD"). |
-| **Chronicle** *(nome provisório)* | Registro de propostas de melhoria a uma Guild, geradas durante o desenvolvimento de uma Quest, aguardando revisão humana. |
-| **Guildhall** *(nome provisório)* | O repositório central onde as Guilds vivem, empacotado como CLI instalável. |
-| **Checkpoint** *(nome provisório)* | Gate humano de revisão dentro do fluxo de desenvolvimento. |
+| Termo                              | Definição                                                                                                                                                     |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Guild**                          | Conjunto de padrões e decisões reutilizáveis (arquitetura, segurança, estilo de código, etc.) que qualquer Quest deve seguir. Não contém código de aplicação. |
+| **Quest**                          | Uma aplicação/projeto individual construído a partir dos padrões das Guilds (antes chamado de "Program").                                                     |
+| **Quest Brief**                    | O documento de requisitos de uma Quest (antes chamado de "PRD").                                                                                              |
+| **Chronicle** _(nome provisório)_  | Registro de propostas de melhoria a uma Guild, geradas durante o desenvolvimento de uma Quest, aguardando revisão humana.                                     |
+| **Guildhall** _(nome provisório)_  | O repositório central onde as Guilds vivem, empacotado como CLI instalável.                                                                                   |
+| **Checkpoint** _(nome provisório)_ | Gate humano de revisão dentro do fluxo de desenvolvimento.                                                                                                    |
 
 **Em aberto:** nomes temáticos para os agentes (Product, Architect, Builder,
 QA, Reviewer, Ops, Docs), nome final do repositório de Guilds, nome final do
@@ -44,26 +45,28 @@ arquivo de propostas.
 ## 3. O que é e o que não é uma Guild
 
 **Uma Guild é:**
-- Uma fonte de verdade sobre *como fazer*, não sobre *o que construir*.
+
+- Uma fonte de verdade sobre _como fazer_, não sobre _o que construir_.
 - Agnóstica de produto — nunca sabe qual Quest específica vai consumi-la.
 - Consultável por agentes antes de agir (o valor só existe se for lida).
 - Versionável e evolutiva.
 - Prescritiva, não apenas descritiva.
 
 **Uma Guild não é:**
+
 - Código de aplicação ou lógica de negócio específica de uma Quest.
 - Uma Quest em si (não roda, não tem deploy).
 - Uma decisão pontual válida para um único projeto (isso vai no Quest Brief).
 - Um repositório de "tudo que pode ser útil depois" (nasce de repetição real).
 - Estática — deve evoluir quando uma Quest revela uma lacuna nela.
 
-**Teste rápido:** *"Se eu criar 5 Quests completamente diferentes, essa regra
-se aplicaria igual a todas elas?"* Se sim → Guild. Se depende do projeto → é
+**Teste rápido:** _"Se eu criar 5 Quests completamente diferentes, essa regra
+se aplicaria igual a todas elas?"_ Se sim → Guild. Se depende do projeto → é
 decisão específica da Quest.
 
 ### 3.1 Guilds condicionais
 
-Algumas regras se aplicam apenas a Quests de um determinado *tipo* (ex: Quests
+Algumas regras se aplicam apenas a Quests de um determinado _tipo_ (ex: Quests
 com interface visual, Quests que expõem API pública). Isso ainda é considerado
 Guild, desde que a regra seja consistente para todo Quest daquele tipo — não é
 uma exceção arbitrária. Cada Guild condicional deve declarar seu escopo
@@ -71,6 +74,7 @@ explicitamente:
 
 ```markdown
 # UX/Frontend Guild
+
 > Aplica-se a: Quests com interface visual (web, mobile)
 > Não se aplica a: APIs puras, scripts, CLIs internos
 ```
@@ -83,6 +87,7 @@ para decidir quais Guilds condicionais copiar na criação da Quest.
 ## 4. Lista de Guilds
 
 **Núcleo (core) — aplicam-se a toda Quest:**
+
 1. Architecture Guild — estrutura de pastas, camadas, contratos de API
 2. Security Guild — auth, secrets, dependências, práticas de segurança
 3. Data Guild — modelagem, migrations, backup, retenção
@@ -92,30 +97,27 @@ para decidir quais Guilds condicionais copiar na criação da Quest.
 7. Code Style Guild — linters, formatters, convenções, **política de idioma**
 8. AI/Agents Guild — como a IA é usada no pipeline, prompts padrão
 
-**Condicionais — aplicam-se conforme o tipo de Quest:**
-9. UX/Frontend Guild — só para Quests com interface visual
-10. Documentation Guild — formato de README, ADRs
-11. Product/Ideation Guild — padrão de como uma ideia vira Quest Brief
+**Condicionais — aplicam-se conforme o tipo de Quest:** 9. UX/Frontend Guild — só para Quests com interface visual 10. Documentation Guild — formato de README, ADRs 11. Product/Ideation Guild — padrão de como uma ideia vira Quest Brief
 
 ---
 
 ## 5. Fluxo de desenvolvimento de uma Quest
 
-| # | Etapa | Executor |
-|---|---|---|
-| 1 | Ideação — ideia solta em 2-3 frases | Você |
-| 2 | Quest Brief — transformar ideia em documento de requisitos | Agente "Product" (consulta Product/Ideation Guild) |
-| 3 | Design de arquitetura | Agente "Architect" (consulta Architecture + Data Guild) |
-| 4 | **Checkpoint** — aprovação de brief + arquitetura | Você |
-| 5 | Scaffold da Quest (estrutura, configs, CI/CD base) | Agente "Builder" (consulta Code Style, Ops/Infra, Security Guild) |
-| 6 | Implementação feature a feature | Agente "Builder" |
-| 7 | Geração de testes | Agente "QA" (consulta Testing/QA Guild) |
-| 8 | Revisão de código | Agente "Reviewer" (checklist de Security + Code Style, incluindo verificação de idioma) |
-| 9 | **Checkpoint** — revisão geral pré-deploy | Você |
-| 10 | Deploy | Agente "Ops" (consulta Ops/Infra Guild) |
-| 11 | Monitoramento pós-deploy | Agente "Ops" (consulta Monitoring Guild) |
-| 12 | Documentação final | Agente "Docs" (consulta Documentation Guild) |
-| — | Registro de propostas de melhoria às Guilds | Qualquer agente, a qualquer momento do processo |
+| #   | Etapa                                                      | Executor                                                                                |
+| --- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| 1   | Ideação — ideia solta em 2-3 frases                        | Você                                                                                    |
+| 2   | Quest Brief — transformar ideia em documento de requisitos | Agente "Product" (consulta Product/Ideation Guild)                                      |
+| 3   | Design de arquitetura                                      | Agente "Architect" (consulta Architecture + Data Guild)                                 |
+| 4   | **Checkpoint** — aprovação de brief + arquitetura          | Você                                                                                    |
+| 5   | Scaffold da Quest (estrutura, configs, CI/CD base)         | Agente "Builder" (consulta Code Style, Ops/Infra, Security Guild)                       |
+| 6   | Implementação feature a feature                            | Agente "Builder"                                                                        |
+| 7   | Geração de testes                                          | Agente "QA" (consulta Testing/QA Guild)                                                 |
+| 8   | Revisão de código                                          | Agente "Reviewer" (checklist de Security + Code Style, incluindo verificação de idioma) |
+| 9   | **Checkpoint** — revisão geral pré-deploy                  | Você                                                                                    |
+| 10  | Deploy                                                     | Agente "Ops" (consulta Ops/Infra Guild)                                                 |
+| 11  | Monitoramento pós-deploy                                   | Agente "Ops" (consulta Monitoring Guild)                                                |
+| 12  | Documentação final                                         | Agente "Docs" (consulta Documentation Guild)                                            |
+| —   | Registro de propostas de melhoria às Guilds                | Qualquer agente, a qualquer momento do processo                                         |
 
 **Regra de divisão de implementação (passo 6):** separar por camada, não por
 feature — primeiro lógica pura (`/lib`), depois UI consumindo essa lógica.
@@ -131,6 +133,7 @@ Facilita revisão e testes.
 
    ```markdown
    ## Proposta: <título>
+
    **Guild afetada**: <nome da guild>
    **Contexto**: <o que motivou a proposta>
    **Regra proposta**: <a regra em si>
@@ -200,6 +203,7 @@ Vercel, usando Claude Code + 3 Guild minis (Architecture, Code Style,
 Security).
 
 **O que foi validado:**
+
 - O mecanismo de "ler a Guild antes de agir" funciona na prática — o agente
   seguiu os padrões definidos e sinalizou explicitamente decisões não cobertas
   pelos documentos (ex: necessidade de `eslint-config-prettier` para evitar
@@ -213,6 +217,7 @@ Security).
 
 **Lacunas identificadas (viraram matéria-prima para o mecanismo de propostas
 descrito na seção 6):**
+
 - Regras de Prettier não estavam explícitas no `code-style.md` (o agente usou
   defaults e documentou a decisão).
 - Dependência `eslint-config-prettier` não estava prevista em nenhuma Guild.
@@ -234,9 +239,17 @@ o que depende de julgamento:
 - **`agent-reviewed`** — depende de julgamento; validada pelo agente Reviewer
   e/ou pelos Checkpoints humanos. Ex: hierarquia visual, qualidade da decisão
   de arquitetura, aderência aos critérios de aceite do Quest Brief.
+- **`agent-recommended, human-confirmed`** — o agente detecta o problema e
+  propõe a ação, mas não a executa sozinho; um humano precisa confirmar antes
+  de rodar. Reservada para ações com impacto direto e potencialmente
+  irreversível fora do ambiente de desenvolvimento (ex: rollback de produção
+  na Ops/Infra Guild). Diferente de `agent-reviewed`: aqui não é uma questão
+  de qualidade de julgamento, é uma barreira deliberada contra execução
+  autônoma de ações de alto risco — mesmo que o agente esteja certo.
 
 **Caso de destaque — UX/Frontend Guild:** é a Guild condicional com maior
 potencial de automação. Estrutura sugerida em duas partes:
+
 - Um arquivo de **tokens** (cores, espaçamento, tipografia) como valores
   objetivos — não em prosa — que o lint valida contra hardcoding.
 - Um arquivo `accessibility.md` com regras de acessibilidade, a maioria
