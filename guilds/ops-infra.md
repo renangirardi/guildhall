@@ -9,11 +9,11 @@
 ## Purpose
 Defines the CI/CD pipeline, deploy platform, environment strategy, and
 secrets handling in production. This is where the CI jobs that the Code
-Style Guild (lint, format) and Testing/QA Guild (tests, coverage) assume
-exist are actually specified — what runs, in what order, on what trigger,
-and what it means for a job to block a deploy. Consulted by the Builder
-agent during scaffold (development flow step 5) and by the Ops agent at
-deploy time (step 10).
+Style Guild (lint, format, branch naming, commit format) and Testing/QA
+Guild (tests, coverage) assume exist are actually specified — what runs,
+in what order, on what trigger, and what it means for a job to block a
+deploy. Consulted by the Builder agent during scaffold (development flow
+step 5) and by the Ops agent at deploy time (step 10).
 
 ## Rules
 
@@ -21,22 +21,43 @@ deploy time (step 10).
 - CI runs on GitHub Actions (or equivalent), triggered on every push to a
   pull request and on every push to `main`.
 - Jobs run in this order, failing fast on the cheapest checks first:
-  1. Install dependencies (cached).
-  2. Lint — `eslint` (Code Style Guild).
-  3. Format check — `prettier --check` (Code Style Guild).
-  4. Type check — `tsc --noEmit`. This Guild only defines *where* this
+  1. Branch name check — the PR's source branch matches the Code Style
+     Guild's `type/short-kebab-description` pattern.
+  2. Commit message check — every commit in the PR matches the Code Style
+     Guild's Conventional Commits pattern (`commitlint` or equivalent).
+  3. Install dependencies (cached).
+  4. Lint — `eslint` (Code Style Guild).
+  5. Format check — `prettier --check` (Code Style Guild).
+  6. Type check — `tsc --noEmit`. This Guild only defines *where* this
      check runs in the pipeline; the rule itself — that types must be
      checked, and how strictly (`strict: true` in `tsconfig.json`) — is
      owned by the Architecture Guild's "Type checking" rule, since type
      strictness is what makes that Guild's own layering guarantees
      enforceable at compile time rather than just a convention.
-  5. Unit tests with coverage — `vitest --coverage` (Testing/QA Guild).
-  6. Secret scan — `gitleaks` (Security Guild).
-  7. Dependency audit — `npm audit` (Security Guild).
-  8. Build — `next build` (or equivalent), verifying the production build
-     actually succeeds.
-- Steps 2-7 may run as parallel jobs since they don't depend on each
-  other; Build (8) only runs after all of them pass.
+  7. Unit tests with coverage — `vitest --coverage` (Testing/QA Guild).
+  8. Secret scan — `gitleaks` (Security Guild).
+  9. Dependency audit — `npm audit` (Security Guild).
+  10. Build — `next build` (or equivalent), verifying the production
+      build actually succeeds.
+- Steps 1-2 need no dependency install at all — they check git/PR
+  metadata (the branch name, the commit messages), not the code itself —
+  so they run first, ahead of even "Install dependencies." Steps 4-9 may
+  run as parallel jobs once dependencies are installed, since none of
+  them depend on each other; Build (10) only runs after all of them pass.
+- **Where the Code Style Guild's branch-naming and commit-format checks
+  actually run**: that Guild states their enforcement ambiguously by
+  design — "a CI check (or pre-push hook)" for branch naming, "commit-msg
+  hook or CI check" for commits — and leaves resolving that to whichever
+  Guild owns the pipeline, the same way it leaves *where* lint and format
+  run to this Guild rather than claiming a pipeline position itself.
+  Resolution: both, the same split lint and format already use. A local
+  `commit-msg` hook (`commitlint` via `husky`, installed at scaffold time)
+  gives fast feedback on the developer's own machine, mirroring how
+  ESLint/Prettier already run locally through editor integration before
+  CI ever sees them. But the actual gate is the CI job above: a local
+  hook can be skipped (`--no-verify`) or simply never installed on a
+  fresh clone or CI runner, so nothing this Guild calls "blocking" can
+  depend on a local hook alone.
 > Enforcement: automated — the full sequence runs as CI jobs on every push
 > and PR; a failure in any job fails the pipeline.
 
@@ -86,8 +107,9 @@ deploy time (step 10).
 > automatically per PR; no manual setup required.
 
 ### What blocks a deploy
-- **Blocking** (must pass before merge to `main`, which is what triggers
-  a production deploy):
+- **Blocking — deploy safety** (must pass before merge to `main`, which
+  is what triggers a production deploy; every item here describes
+  whether the code that would actually ship is correct and safe):
   - Lint errors
   - Prettier check failures
   - Type errors (`tsc`)
@@ -99,16 +121,35 @@ deploy time (step 10).
   - Migration failure (`prisma migrate deploy`) — defined by the Data
     Guild, which owns the migration job itself; listed here so this
     Guild's blocking list stays complete on its own
+- **Blocking — PR hygiene** (required via the same branch-protection rule
+  before merge, but kept in a separate tier on purpose):
+  - Branch name not matching the Code Style Guild's pattern
+  - A commit in the PR not matching Conventional Commits
+  - **Why a separate tier, not folded into "deploy safety" above**:
+    these two checks say nothing about the code that ends up in
+    production — a PR with a perfectly safe, well-tested diff can fail
+    only because of how the branch was named or a commit message was
+    phrased. That distinction stops being academic the moment the PR
+    merges: a deploy-safety failure would have meant something is now
+    live and broken, while a hygiene failure means nothing about
+    production at all — a branch name and a commit message don't outlive
+    the merge in any way that touches the running app. They still gate
+    merge, and on this pipeline merge and deploy are the same event, so
+    mechanically they still block *this* deploy — but they're a
+    process gate on how the change was made, not a judgment on whether
+    the change itself is safe to run, which is why they're listed
+    separately instead of alongside the checks that are.
 - **Warning only** (surfaced, does not block):
   - `npm audit` findings below `high` severity
   - Coverage changes outside `/lib`, since no blanket threshold applies
     there (Testing/QA Guild)
 - Enforced via GitHub branch protection on `main` requiring all blocking
-  jobs to pass before merge is allowed. Preview deployments for a PR
-  still build even while CI is red — the point of a preview is to let a
-  human look at it — but that PR cannot merge until it's green.
+  jobs — both tiers — to pass before merge is allowed. Preview
+  deployments for a PR still build even while CI is red — the point of a
+  preview is to let a human look at it — but that PR cannot merge until
+  it's green.
 > Enforcement: automated — branch protection rules on `main` require the
-> blocking CI jobs listed above.
+> blocking CI jobs listed above, both tiers.
 
 ### Rollback
 - Vercel keeps every deployment immutable at its own URL. To roll back a

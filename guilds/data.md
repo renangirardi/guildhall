@@ -90,9 +90,9 @@ whenever the Quest Brief calls for persistence.
 ### Migrations in CI/CD
 Closes the Ops/Infra Guild's "Database migrations" item.
 - `prisma migrate deploy` runs as its own CI/CD job, positioned after
-  Build (Ops/Infra Guild pipeline, step 8) and before the deploy is live,
-  applying pending migrations to the target database as part of the
-  merge-to-`main` pipeline.
+  Build (Ops/Infra Guild pipeline, step 10) and before the deploy is
+  live, applying pending migrations to the target database as part of
+  the merge-to-`main` pipeline.
 - A failed migration is a **blocking** failure, added to the Ops/Infra
   Guild's "What blocks a deploy" list — code must never go live pointed
   at a schema it doesn't match.

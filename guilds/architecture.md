@@ -103,7 +103,7 @@ unclaimed.
   at compile time instead of just a convention agents are trusted to
   follow. Ownership follows the guarantee it backs.
 - The check itself (`tsc --noEmit`) executes as its own CI job — that
-  remains the Ops/Infra Guild's pipeline to define (step 4, run order,
+  remains the Ops/Infra Guild's pipeline to define (step 6, run order,
   what blocks a deploy); this Guild owns only the rule that types must be
   checked and how strictly.
 > Enforcement: automated — `tsc --noEmit` as a CI job (Ops/Infra Guild's
