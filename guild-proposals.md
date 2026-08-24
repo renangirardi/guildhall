@@ -54,3 +54,64 @@ deciding what counts as a "real pointer" in a way that doesn't just trade
 one loophole for another (e.g. a Guild name mentioned incidentally,
 without an actual rule reference, would technically match a naive
 name-search). Revisit before writing the stricter check.
+
+---
+
+## Proposal: Enforce Quartermaster's rollback stop-and-confirm gate at the tool level, not by instruction alone
+
+**Affected Guild**: AI/Agents Guild — "When to apply
+`agent-recommended, human-confirmed`", and the Ops/Infra Guild's Rollback
+rule / Monitoring Guild's Incident response rule that instantiate it.
+
+**Context**: While authoring `templates/claude/agents/` (Phase 1 of the
+agent-orchestration work referenced in `docs/spec.md`, section 11), the
+Warden subagent's `tools:` frontmatter omits `Write`/`Edit` entirely,
+which makes "Warden doesn't fix code itself" a real tool-level guarantee
+rather than only a prompt instruction. Quartermaster's rollback gate
+couldn't get the same treatment: it needs `Bash` to run a routine deploy
+(an action its own authority permits alone), but that same `Bash` grant
+also technically permits `vercel rollback` or a deployment-promotion
+command — the one action the Ops/Infra Guild explicitly reserves for
+`agent-recommended, human-confirmed`. Checked directly against Claude
+Code's actual subagent format: the `tools:` field only grants/withholds
+whole tools, with no syntax for restricting `Bash` to a command-pattern
+allowlist (e.g. `Bash(vercel deploy:*)` while excluding
+`vercel rollback`). `settings.json`'s `permissions.allow`/`deny` rules do
+support that pattern syntax, but they apply project-wide, not scoped to
+one subagent — using them to block `vercel rollback` for Quartermaster
+would also block it for every other agent, which isn't the actual
+constraint being enforced (routine deploys, run by Quartermaster, are
+fine; unconfirmed rollback, by anyone, isn't). The only mechanism that
+could enforce this mechanically today is a `PreToolUse` hook running a
+command-validation script — technically real, but a separate deliverable
+(an external script, cross-platform shell concerns) from a single
+self-contained subagent template file, so it wasn't built as part of this
+pass. `quartermaster.md`'s "Stop-and-confirm gate" section documents this
+limitation explicitly rather than leaving it implicit.
+
+**Proposed rule**: Once a Quest actually exercises this path (a real
+rollback scenario with a real Quartermaster agent), author a `PreToolUse`
+hook — either as a companion file shipped alongside
+`templates/claude/agents/quartermaster.md`, or documented as a
+recommended addition in the Ops/Infra Guild's Rollback rule — that
+inspects any `Bash` call attempting `vercel rollback` (or an equivalent
+promotion command) and blocks it unless a human-confirmation signal is
+present, closing the gap between "Warden's tool-level guarantee" and
+"Quartermaster's instruction-only gate."
+
+**Evidence**: guildhall, `templates/claude/agents/` authoring session
+(2026-08-24) — see `templates/claude/agents/quartermaster.md`,
+"Stop-and-confirm gate," which documents this limitation inline.
+
+**Generalization test**: Applies to any future subagent whose routine
+authority requires a tool (`Bash`, or any other) that also happens to
+grant access to a different, higher-stakes action gated
+`agent-recommended, human-confirmed` under the same tool name — not
+specific to Quartermaster or to Vercel's CLI. The same shape would recur
+for, e.g., a database-migration agent whose `Bash` access to run
+migrations also technically permits a destructive `prisma migrate reset`.
+
+**Status**: Open — not yet promoted. Revisit once a real Quest exercises
+Quartermaster's rollback path, or once `PreToolUse` hook authoring
+conventions exist elsewhere in this project to build on, rather than
+designing the hook script speculatively now.
