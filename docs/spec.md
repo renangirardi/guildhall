@@ -140,7 +140,7 @@ guildhall).
 7. Code Style Guild ✅
 8. AI/Agents Guild ✅
 
-**Condicionais — aplicam-se conforme o tipo de Quest:** 9. Documentation Guild ✅ 10. UX/Frontend Guild — em rascunho 11. Product/Ideation Guild — em rascunho
+**Condicionais — aplicam-se conforme o tipo de Quest:** 9. Documentation Guild ✅ 10. Product/Ideation Guild ✅ 11. UX/Frontend Guild — em rascunho (única pendente)
 
 ---
 
