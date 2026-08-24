@@ -26,7 +26,9 @@ decision or incident actually happens, rather than waiting for step 12.
 Every Quest ships a `README.md` at its root with these sections, in
 order. A section is omitted only when it plainly doesn't apply (e.g. no
 "Deployment" section for a CLI/script Quest with no deploy target, per
-the Ops/Infra Guild's own applicability line):
+the Ops/Infra Guild's own applicability line; no "Accessibility" section
+for a Quest with no UI, per the UX/Frontend Guild's own applicability
+line):
 1. **Title + one-line description** — what the Quest does, in one
    sentence.
 2. **Quest Brief link** — a pointer to the Quest's own requirements
@@ -45,10 +47,19 @@ the Ops/Infra Guild's own applicability line):
 6. **Architecture notes** — a pointer to `/docs/adr/` if the Quest has
    any ADRs (see below), rather than re-explaining structure the
    Architecture Guild already standardizes.
+7. **Accessibility** — a pointer to `docs/accessibility.md`, not a
+   restatement of the WCAG baseline or score history it holds (UX/
+   Frontend Guild's "Accessibility documentation" rule) — same
+   source-of-truth discipline as the Quest Brief link above, one level
+   down. Present only for `web-app` Quests, matching that Guild's own
+   `appliesTo` scope in `guilds/manifest.json`; omitted entirely for any
+   Quest type with no UI.
 > Enforcement: automated (custom) — a scaffold script generates the
-> README with these headings already in place; a CI check can verify the
-> headings still exist. Whether the content under each heading is
-> actually accurate and useful is agent-reviewed.
+> README with these headings already in place, including conditionally
+> omitting "Deployment" and "Accessibility" based on the Quest's declared
+> type; a CI check can verify the headings still exist. Whether the
+> content under each heading is actually accurate and useful is
+> agent-reviewed.
 
 ### ADR format — when a decision earns one
 An Architecture Decision Record captures a decision made *during*

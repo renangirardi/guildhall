@@ -39,6 +39,21 @@ step 5) and by the Ops agent at deploy time (step 10).
   9. Dependency audit — `npm audit` (Security Guild).
   10. Build — `next build` (or equivalent), verifying the production
       build actually succeeds.
+  11. Accessibility audit (web-app Quests only) — Lighthouse CI against
+      the PR's Vercel Preview deployment URL (see "Environment
+      strategy"), failing if the Accessibility category score drops
+      below the UX/Frontend Guild's threshold. This Guild only defines
+      *where* this check runs and that it's blocking; the rule itself —
+      the threshold, and that only the Accessibility category is gated
+      on — is owned by the UX/Frontend Guild's "Accessibility baseline
+      (WCAG AA)" rule, the same ownership split the Architecture Guild's
+      "Type checking" rule already established with this Guild.
+- Step 11 differs from 1-10 in one way worth naming: it depends on the
+  Vercel Preview deployment actually existing first, since Lighthouse
+  audits a live URL rather than the code directly — so it runs after the
+  Preview deployment completes, not in parallel with the dependency-
+  installed jobs above. It does not apply to `api` Quests within this
+  Guild's own applicability (there is no page for Lighthouse to audit).
 - Steps 1-2 need no dependency install at all — they check git/PR
   metadata (the branch name, the commit messages), not the code itself —
   so they run first, ahead of even "Install dependencies." Steps 4-9 may
@@ -121,6 +136,9 @@ step 5) and by the Ops agent at deploy time (step 10).
   - Migration failure (`prisma migrate deploy`) — defined by the Data
     Guild, which owns the migration job itself; listed here so this
     Guild's blocking list stays complete on its own
+  - Lighthouse CI Accessibility score below threshold (web-app Quests
+    only) — defined by the UX/Frontend Guild, which owns the threshold
+    itself; listed here for the same reason as the migration item above
 - **Blocking — PR hygiene** (required via the same branch-protection rule
   before merge, but kept in a separate tier on purpose):
   - Branch name not matching the Code Style Guild's pattern

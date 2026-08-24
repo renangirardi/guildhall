@@ -208,10 +208,16 @@ the first rule above.
 covered:
 - **UI/wireframe or visual requirements in the Brief** — this Guild's
   format stops at functional scope and checkable acceptance criteria, not
-  visual design. That belongs to the (still-draft) UX/Frontend Guild once
-  active (master spec, section 11), the same way the Architecture Guild's
-  own "Out of scope" defers a component/design-system standard to that
-  Guild rather than defining one itself.
+  visual design. The UX/Frontend Guild's "Visual requirements in the
+  Quest Brief" rule now closes this: an acceptance criterion may
+  reference that Guild's token-conformance and WCAG baseline rules
+  directly instead of restating them, the same cross-guild-reference
+  pattern this Guild's own acceptance-criteria rule already demonstrates
+  with the Security Guild's input-validation example; anything beyond
+  that objective baseline (a specific visual identity, a layout, "how it
+  should feel") stays Quest-specific and belongs in this Guild's Scope
+  section, not standardized by either Guild. No wireframing/mockup tool
+  is chosen by either Guild — see the UX/Frontend Guild's "Out of scope."
 - **Effort estimation or timelines** (story points, target dates) — this
   is a personal project with a single developer deciding priority
   directly, not a team-planning process with stakeholders to coordinate

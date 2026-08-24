@@ -152,10 +152,14 @@ covered:
 - **API contract conventions beyond "use Next.js API Routes"** (REST
   resource naming, versioning, GraphQL, tRPC) — this Guild defines
   *where* server-side logic lives, not the shape of the contract itself.
-- **UI component/design system standard** — belongs to the (still-draft)
-  UX/Frontend Guild once active (master spec, section 11); this Guild
+- **UI component/design system standard** — the UX/Frontend Guild is now
+  active and has answered this: a design system stays deliberately out of
+  its own scope too, starting with tokens only until a component repeats
+  consistently across 2-3 Quests with a UI (see that Guild's "Out of
+  scope," "Design system / reusable component library"). This Guild
   stops at the Client/Server Component boundary, not visual component
-  structure.
+  structure, and that boundary is unchanged by the UX/Frontend Guild's
+  answer.
 
 These four are candidates for a future revision of this Guild once real
 Quests surface a concrete need, not something to re-propose from scratch

@@ -22,12 +22,13 @@ padrões, heróis (agentes) executam missões (aplicações) seguindo esses padr
 **Status atual:** conceito validado através de um MVP completo (ideação →
 deploy). O `guildhall` (repositório de Guilds como CLI instalável) está
 construído e testado — comandos `init`, `update` e `review-proposals`
-funcionais. As 9 Guilds core + Documentation estão completas, incluindo
-uma segunda passada de revisão nas 3 Guilds originais do MVP (Architecture,
-Security, Code Style), que nasceram como versões "mini" e foram elevadas
-ao mesmo padrão de rigor das demais. Restam apenas as Guilds condicionais
-UX/Frontend e Product/Ideation em rascunho. Nenhuma Quest real (além do
-MVP) foi construída ainda com o sistema completo.
+funcionais. As 11 Guilds (8 core + 3 condicionais) estão completas,
+incluindo uma segunda passada de revisão nas 3 Guilds originais do MVP
+(Architecture, Security, Code Style), que nasceram como versões "mini" e
+foram elevadas ao mesmo padrão de rigor das demais. A UX/Frontend Guild,
+última pendente, fechou as duas referências que a Architecture Guild e a
+Product/Ideation Guild deixaram em aberto para ela. Nenhuma Quest real
+(além do MVP) foi construída ainda com o sistema completo.
 
 ---
 
@@ -140,7 +141,9 @@ guildhall).
 7. Code Style Guild ✅
 8. AI/Agents Guild ✅
 
-**Condicionais — aplicam-se conforme o tipo de Quest:** 9. Documentation Guild ✅ 10. Product/Ideation Guild ✅ 11. UX/Frontend Guild — em rascunho (única pendente)
+**Condicionais — aplicam-se conforme o tipo de Quest:** 9. Documentation Guild ✅ 10. Product/Ideation Guild ✅ 11. UX/Frontend Guild ✅
+
+**Todas as 11 Guilds estão completas.**
 
 ---
 
@@ -317,16 +320,15 @@ virar proposta para o Chronicle (seção 6).
   discutidas: scripts simples, slash commands por agente, ou orquestrador
   automático completo).
 - Nome final do projeto (trabalhando com "AI Adventure" como proposta).
-- **Design system para a UX/Frontend Guild** — decisão adiada de propósito.
-  Começar apenas pelos tokens (cores, espaçamento, tipografia), automatizáveis
-  via lint. Componentes reais (Button, Input, Card...) só devem ser extraídos
-  para um design system depois de se repetirem de forma consistente em 2-3
-  Quests com UI — mesmo princípio de generalização usado para promover
-  propostas ao Chronicle (seção 6). Revisitar após ter Quests reais com
-  interface visual.
-- **Duas Guilds condicionais ainda em rascunho**: UX/Frontend e
-  Product/Ideation (o prompt desta última já foi gerado mas ainda não
-  executado).
+- **Design system para a UX/Frontend Guild** — decisão adiada de propósito,
+  agora formalizada na própria Guild (`guilds/ux-frontend.md`, seção "Out of
+  scope"), que é a fonte de verdade daqui em diante. Começar apenas pelos
+  tokens (cores, espaçamento, tipografia), automatizáveis via lint.
+  Componentes reais (Button, Input, Card...) só devem ser extraídos para um
+  design system depois de se repetirem de forma consistente em 2-3 Quests
+  com UI — mesmo princípio de generalização usado para promover propostas
+  ao Chronicle (seção 6). Revisitar após ter Quests reais com interface
+  visual.
 - **Stack padrão para Quests `cli` e `script`** — gap real (não decisão
   consciente) identificado durante a revisão da Architecture Guild: o
   manifesto lista essas guilds como aplicáveis a todo tipo de Quest, mas
