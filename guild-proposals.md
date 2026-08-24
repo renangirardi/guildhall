@@ -115,3 +115,85 @@ migrations also technically permits a destructive `prisma migrate reset`.
 Quartermaster's rollback path, or once `PreToolUse` hook authoring
 conventions exist elsewhere in this project to build on, rather than
 designing the hook script speculatively now.
+
+---
+
+## Proposal: Extend `guildhall init`/`update` to also copy the agent-orchestration templates, not just Guild files
+
+**Affected Guild**: AI/Agents Guild — "Out of scope," multi-agent
+orchestration mechanics (deferred to `docs/spec.md` section 11); and the
+guildhall CLI's `init`/`update` commands (`bin/cli.js`).
+
+**Context**: While authoring `templates/claude/skills/quest-flow/
+SKILL.md` (Phase 2 of the agent-orchestration work), the skill needs
+three things to already exist inside a Quest's own repository: the seven
+subagent templates at `.claude/agents/*.md`, the skill itself at
+`.claude/skills/quest-flow/SKILL.md`, and the agent applicability
+manifest at `.claude/quest-manifest.json` (a copy of this repository's
+`templates/manifest.json`, which the skill reads at runtime to decide
+whether Quartermaster applies to a given Quest's type). Checked
+`bin/cli.js` directly: `cmdInit`/`selectGuilds` only copy `guilds/*.md`
+per `guilds/manifest.json` — there is no equivalent step for anything
+under `templates/`. Getting the three prerequisites above into a Quest
+today is a manual, undocumented step; nothing in the CLI, the AI/Agents
+Guild, or `docs/spec.md` currently says where they should land or how
+they get there.
+
+**Proposed rule**: Extend `cmdInit` (and `cmdUpdate`) to also copy
+`templates/claude/agents/*.md` to `<quest>/.claude/agents/`,
+`templates/claude/skills/*` to `<quest>/.claude/skills/`, and
+`templates/manifest.json` to `<quest>/.claude/quest-manifest.json`
+(filename open to revision), the same way Guild files are copied today.
+Unlike Guild selection, this likely doesn't need per-Quest-type gating —
+each agent/skill already knows its own applicability internally (see
+`templates/manifest.json`'s `appliesTo`/`conditionalByType` fields and
+each agent template's own applicability checks) — but that's a detail to
+settle when this is actually implemented, not decided here.
+
+**Evidence**: guildhall, `templates/claude/skills/quest-flow/` authoring
+session (2026-08-24) — see `SKILL.md`, "Prerequisites — and a gap this
+exposed," which documents this limitation inline.
+
+**Generalization test**: Applies identically regardless of which Quest
+is being initialized — any Quest that wants to use the agent-
+orchestration flow hits this same missing-wiring gap, since it's a
+property of the CLI, not of a specific Quest's content.
+
+**Status**: Open — not yet promoted. This is squarely the "level of
+orchestration automation" question `docs/spec.md` section 11 already
+lists as undecided (scripts vs. per-agent slash commands vs. a full
+orchestrator) and that `guilds/ai-agents.md` explicitly keeps out of its
+own scope. Wiring the CLI copy step is a small, low-risk slice of that
+larger open decision and could reasonably be built without resolving the
+whole question — revisit once section 11 settles, or sooner if a real
+Quest tries to use `quest-flow` and hits the gap directly.
+
+**Resolution (2026-08-24)**: Promoted and implemented in `bin/cli.js`
+(guildhall orchestration Phase 3). `cmdInit` now copies
+`templates/claude/agents/*.md` to `<quest>/.claude/agents/`,
+`templates/claude/skills/*` to `<quest>/.claude/skills/` (recursively,
+unconditionally — the orchestrator skill applies to every Quest type),
+and `templates/manifest.json` to `<quest>/.claude/quest-manifest.json`
+in full (unfiltered, so the quest-flow skill can read any agent's
+`appliesTo` at runtime). `cmdUpdate` mirrors the existing guild
+version-diff logic, but against a separate `agentTemplatesVersion` field
+in `.guildhall-lock.json` — kept independent from `guildhallVersion`
+since the two manifests (`guilds/manifest.json`,
+`templates/manifest.json`) version on their own schedules and shouldn't
+force each other's refresh. One point where implementation diverged from
+this proposal's own speculation: agent *files* (not the manifest) **are**
+gated by `appliesTo`, the same way guilds are — `quartermaster.md` is
+simply not copied into a `cli`/`script` Quest, rather than relying only
+on Quartermaster's own internal applicability check. This mirrors how
+the project already treats guilds that don't apply (e.g. `ops-infra.md`
+for `cli`/`script`) and gives the manifest-level narrowing
+`templates/manifest.json` already documents for Quartermaster a real
+tooling backstop, not just an instruction. `.guildhall-lock.json` also
+moved from `<quest>/guilds/.guildhall-lock.json` to `<quest>/
+.guildhall-lock.json` (Quest root), since it now tracks more than guild
+content and nesting it under `guilds/` would misstate its scope — no
+migration path was written, since no real Quest predates this change.
+Verified with a real `guildhall init` run against scratch directories
+for both a `web-app` type (all 7 agents installed, including
+Quartermaster) and a `cli` type (6 agents, Quartermaster correctly
+omitted), plus an `update` run confirming independent version tracking.

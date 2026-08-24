@@ -22,12 +22,16 @@ padrões, heróis (agentes) executam missões (aplicações) seguindo esses padr
 **Status atual:** conceito validado através de um MVP completo (ideação →
 deploy). O `guildhall` (repositório de Guilds como CLI instalável) está
 construído e testado — comandos `init`, `update` e `review-proposals`
-funcionais. As 9 Guilds core + Documentation estão completas, incluindo
-uma segunda passada de revisão nas 3 Guilds originais do MVP (Architecture,
-Security, Code Style), que nasceram como versões "mini" e foram elevadas
-ao mesmo padrão de rigor das demais. Restam apenas as Guilds condicionais
-UX/Frontend e Product/Ideation em rascunho. Nenhuma Quest real (além do
-MVP) foi construída ainda com o sistema completo.
+funcionais. As 11 Guilds (8 core + 3 condicionais) estão completas,
+incluindo uma segunda passada de revisão nas 3 Guilds originais do MVP
+(Architecture, Security, Code Style), que nasceram como versões "mini" e
+foram elevadas ao mesmo padrão de rigor das demais. Nenhuma Quest real
+(além do MVP) foi construída ainda com o sistema completo.
+
+A orquestração de agentes também está implementada (sessão de 2026-08-24,
+quatro fases): os 7 subagentes temáticos, a skill orquestradora
+`/quest-flow` e a distribuição de ambos via `init`/`update` — ver seção
+5.1 e seção 7.
 
 ---
 
@@ -53,6 +57,12 @@ MVP) foi construída ainda com o sistema completo.
 | Reviewer      | **Warden**        | 8                 |
 | Ops           | **Quartermaster** | 10-11             |
 | Docs          | **Scribe**        | 12                |
+
+Esses nomes temáticos são também os nomes reais dos arquivos de subagente
+do Claude Code em `templates/claude/agents/` (`herald.md`,
+`loremaster.md`, `artificer.md`, `sentinel.md`, `warden.md`,
+`quartermaster.md`, `scribe.md`) — ver seção 5.1 para como eles são
+coordenados.
 
 **Em aberto:** nome final do projeto (seção 11).
 
@@ -150,7 +160,9 @@ guildhall).
 7. Code Style Guild ✅
 8. AI/Agents Guild ✅
 
-**Condicionais — aplicam-se conforme o tipo de Quest:** 9. Documentation Guild ✅ 10. Product/Ideation Guild ✅ 11. UX/Frontend Guild — em rascunho (única pendente)
+**Condicionais — aplicam-se conforme o tipo de Quest:** 9. Documentation Guild ✅ 10. Product/Ideation Guild ✅ 11. UX/Frontend Guild ✅
+
+**Todas as 11 Guilds estão completas.**
 
 ---
 
@@ -175,6 +187,42 @@ guildhall).
 **Regra de divisão de implementação (passo 6):** separar por camada, não por
 feature — primeiro lógica pura (`/lib`), depois UI consumindo essa lógica.
 Facilita revisão e testes.
+
+### 5.1 Orquestração dos agentes — decisão tomada
+
+Resolve o item que estava em "Nível de automação da orquestração de
+agentes" na antiga lista de decisões em aberto (seção 11). Decisão:
+**automação máxima possível** dentro do fluxo da tabela acima, mantendo
+intervenção humana exatamente nos dois Checkpoints (passos 4 e 9) e em
+qualquer ação que a AI/Agents Guild já classifica como
+`agent-recommended, human-confirmed` (seção 10) — nenhum ponto de parada
+adicional foi inventado além desses.
+
+Implementação (sessão de 2026-08-24, quatro fases):
+
+- Cada papel temático da seção 2 é um subagente real do Claude Code, um
+  arquivo por papel, em `templates/claude/agents/` — Herald, Loremaster,
+  Artificer, Sentinel, Warden, Quartermaster, Scribe.
+- Os sete são coordenados por uma skill orquestradora,
+  `templates/claude/skills/quest-flow/SKILL.md`, invocável como
+  `/quest-flow` (o nome do comando vem do nome do diretório da skill no
+  Claude Code, não do campo `name:` do seu frontmatter — por isso não é
+  `/quest`).
+- Um Checkpoint não é nenhum mecanismo especial de pausa — é só a skill
+  apresentando o resultado do passo anterior e terminando o turno; a
+  retomada acontece porque o desenvolvedor manda uma nova mensagem, na
+  mesma sessão ou em uma futura.
+- Progresso é persistido em `.quest-progress.json`, na raiz da própria
+  Quest, justamente para sobreviver a múltiplas sessões — inclusive
+  depois de um `/clear`, quando o contexto da conversa é perdido mas o
+  arquivo continua no disco.
+- Aplicabilidade por tipo de Quest é respeitada em duas camadas: cada
+  agente já sabe dizer "não se aplica" internamente (o Quartermaster é o
+  exemplo — steps 10-11 não fazem sentido para `cli`/`script`), e a
+  skill orquestradora também consulta `templates/manifest.json`
+  (distribuído a cada Quest como `.claude/quest-manifest.json`, seção 7)
+  para nem chegar a invocar um agente que sabe de antemão que não vai
+  fazer nada.
 
 ---
 
@@ -206,6 +254,16 @@ Facilita revisão e testes.
 sempre humana (evita degradar as Guilds com regras isoladas ou não testadas
 em múltiplos contextos).
 
+**Nota:** existe também um `guild-proposals.md` na raiz do próprio
+guildhall, distinto do `guild-proposals.md` de cada Quest — acumula
+propostas sobre o mecanismo de guilds/CLI em si (não sobre uma Quest
+específica). Já tem 3 propostas registradas: uma resolvida (a extensão do
+`init`/`update` para distribuir os templates de agente, seção 7), e duas
+ainda abertas (a limitação do check de sincronização cruzada, seção 3.1;
+e o gate de enforcement do Quartermaster, que hoje é só por instrução, sem
+lastro a nível de ferramenta). Conteúdo completo no próprio arquivo, não
+repetido aqui.
+
 ---
 
 ## 7. Distribuição das Guilds — decisão arquitetural
@@ -216,13 +274,22 @@ em múltiplos contextos).
   publicado como pacote (npm ou equivalente, mesmo que só localmente).
 - Um CLI expõe comandos como:
   - `init` — copia as Guilds relevantes (core + condicionais conforme tipo de
-    Quest) para dentro de um novo projeto.
+    Quest) para dentro de um novo projeto **e também** os templates de
+    orquestração de agentes (seção 5.1): os subagentes aplicáveis a esse
+    tipo de Quest para `.claude/agents/`, a skill orquestradora
+    `/quest-flow` (incondicional, para todo tipo de Quest) para
+    `.claude/skills/`, e o manifesto de aplicabilidade de agentes, por
+    inteiro, para `.claude/quest-manifest.json`.
   - `update` — atualiza uma Quest existente para a versão mais recente das
-    Guilds.
+    Guilds **e** dos templates de agente, cada um checado e re-copiado de
+    forma independente.
   - `review-proposals` — consolida propostas (`guild-proposals.md`) de todas
     as Quests conhecidas para revisão humana.
 - As Guilds são versionadas (semver), permitindo que uma Quest fique fixada
-  numa versão específica mesmo que as Guilds evoluam depois.
+  numa versão específica mesmo que as Guilds evoluam depois. Os templates de
+  agente seguem o mesmo princípio, mas com seu próprio número de versão
+  (`templates/manifest.json`), independente do das Guilds — ver "Status"
+  abaixo.
 
 **Por que essa escolha:** resolve o problema de sincronizar melhorias entre
 múltiplas Quests manualmente, e dá histórico real (changelog) da evolução dos
@@ -231,8 +298,15 @@ não oferece de forma nativa.
 
 **Status:** implementado e testado. O CLI (`bin/cli.js`, sem dependências
 externas) expõe `init`, `update` e `review-proposals`; o `guildhall init`
-já foi validado copiando as 11 guilds do manifesto para um projeto novo,
-com `.guildhall-lock.json` registrando a versão instalada.
+já foi validado copiando as 11 guilds do manifesto, os subagentes
+aplicáveis ao tipo de Quest (o Quartermaster é filtrado fora de Quests
+`cli`/`script`, do mesmo jeito que uma guild condicional que não se
+aplica) e a skill `/quest-flow` para um projeto novo. O rastreamento de
+versão instalada vive num único `.guildhall-lock.json` na raiz da Quest
+(não mais dentro de `guilds/`, já que o arquivo agora cobre mais do que
+guilds), com dois campos independentes — `guildhallVersion` para as
+Guilds e `agentTemplatesVersion` para os templates de agente — para que
+uma mudança de versão em um não force a atualização do outro.
 
 ---
 
@@ -323,9 +397,6 @@ virar proposta para o Chronicle (seção 6).
   Ops, Docs) e para os demais elementos provisórios (Chronicle, Checkpoint).
   `Guildhall` já está em uso consistente havia várias revisões — considerar
   promovido de "provisório" para definitivo.
-- Nível de automação da orquestração de agentes (ainda não decidido — opções
-  discutidas: scripts simples, slash commands por agente, ou orquestrador
-  automático completo).
 - Nome final do projeto (trabalhando com "AI Adventure" como proposta).
 - **Design system para a UX/Frontend Guild** — decisão adiada de propósito.
   Começar apenas pelos tokens (cores, espaçamento, tipografia), automatizáveis
@@ -334,28 +405,19 @@ virar proposta para o Chronicle (seção 6).
   Quests com UI — mesmo princípio de generalização usado para promover
   propostas ao Chronicle (seção 6). Revisitar após ter Quests reais com
   interface visual.
-- **Duas Guilds condicionais ainda em rascunho**: UX/Frontend e
-  Product/Ideation (o prompt desta última já foi gerado mas ainda não
-  executado).
 - **Stack padrão para Quests `cli` e `script`** — gap real (não decisão
   consciente) identificado durante a revisão da Architecture Guild: o
   manifesto lista essas guilds como aplicáveis a todo tipo de Quest, mas
   Architecture, Code Style e outras só definem conteúdo para `web-app`/
   `api`. Só deve ser resolvido quando uma Quest desse tipo for realmente
   tentada, não especulado agora.
-- **`guild-proposals.md` do próprio guildhall** — distinto dos
-  `guild-proposals.md` por Quest: acumula propostas sobre o próprio
-  mecanismo de guilds (ex: a limitação do check de sincronização cruzada
-  descoberta na revisão da Documentation Guild). Ainda não existe como
-  arquivo real no repositório, só como conceito referenciado pela
-  AI/Agents Guild — criar e popular com os itens já identificados.
 
 ---
 
 ## 12. Como retomar este projeto em uma nova conversa
 
 Ao iniciar uma nova conversa, anexe este documento e informe em qual seção
-das "Decisões em aberto" (seção 10) você quer continuar, ou descreva o próximo
+das "Decisões em aberto" (seção 11) você quer continuar, ou descreva o próximo
 passo desejado. Este documento reflete o estado da especificação até a data
 indicada no topo — decisões tomadas em conversas futuras devem ser
 incorporadas de volta aqui para manter a continuidade.
