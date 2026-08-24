@@ -140,6 +140,19 @@ exists, which is what makes it a rule here instead of a one-off habit.
 > reasoning the Data Guild applied to its point-in-time-recovery check:
 > the pattern is mechanical enough to script, so it's implemented
 > directly rather than left as a future candidate.
+>
+> Known limitation: the check only proves the origin file was *touched*
+> in the same diff, not that the removed line was actually replaced by a
+> real pointer back to the closing Guild's rule — a line could be deleted
+> outright, or edited for an unrelated reason, and still pass. The
+> Monitoring Guild's "Post-incident documentation format" closure (by the
+> Documentation Guild) hit exactly this blind spot: the "Out of scope"
+> line was correctly removed, but the back-reference in "Incident
+> response" was initially missed, and the automated check had no way to
+> catch that. Logged as a `guild-proposals.md` candidate for guildhall
+> itself: tightening the script to also require a positive reference to
+> the closing Guild's name somewhere in the origin file's diff, not just
+> touching the file.
 
 ### Encountering a Guild in `draft` status
 When an agent needs a Guild that's still `status: draft` mid-task:

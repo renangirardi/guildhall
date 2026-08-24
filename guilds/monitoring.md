@@ -108,6 +108,12 @@ Consulted by the Ops agent post-deploy (development flow step 11).
   *deciding to act*. The agent's diagnosis (what broke, and why) is a
   judgment call; whether to act on it is not the agent's call to make
   alone.
+- Once the incident is resolved, the write-up follows the Documentation
+  Guild's "Post-incident documentation" rule — timeline, root cause,
+  impact, and follow-up. The Ops agent writes it immediately after
+  resolution, the same agent that diagnosed and responded to the
+  incident, not deferred to the Docs agent's step-12 pass in the
+  development flow.
 > Enforcement: agent-reviewed for the diagnosis; agent-recommended,
 > human-confirmed for proposing and taking any corrective action.
 
@@ -122,10 +128,6 @@ This Guild deliberately does not yet cover:
 - **Third-party API reachability in the healthcheck** — the Data Guild
   covers the database case; checking a third-party API dependency the
   same way is still undefined.
-- **Post-incident documentation format** — how an incident gets written
-  up after the fact belongs with the Documentation Guild, which is still
-  a draft; this Guild only defines the detection/response boundary, not
-  the write-up.
 
 This is a conscious minimum-scope decision for the current stage of the
 project, not an oversight — these are candidates for a future revision of
