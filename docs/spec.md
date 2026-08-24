@@ -20,8 +20,14 @@ padrões, heróis (agentes) executam missões (aplicações) seguindo esses padr
    por isso a decisão de manter todo artefato de código em inglês.
 
 **Status atual:** conceito validado através de um MVP completo (ideação →
-deploy). Em fase de desenho da versão "real" do sistema, começando pela
-estrutura de Guilds como pacote/CLI.
+deploy). O `guildhall` (repositório de Guilds como CLI instalável) está
+construído e testado — comandos `init`, `update` e `review-proposals`
+funcionais. As 9 Guilds core + Documentation estão completas, incluindo
+uma segunda passada de revisão nas 3 Guilds originais do MVP (Architecture,
+Security, Code Style), que nasceram como versões "mini" e foram elevadas
+ao mesmo padrão de rigor das demais. Restam apenas as Guilds condicionais
+UX/Frontend e Product/Ideation em rascunho. Nenhuma Quest real (além do
+MVP) foi construída ainda com o sistema completo.
 
 ---
 
@@ -82,22 +88,59 @@ explicitamente:
 O tipo de Quest é declarado no Quest Brief (campo `tipo`) e usado pelo CLI
 para decidir quais Guilds condicionais copiar na criação da Quest.
 
+### 3.2 Formato padrão de um documento de Guild
+
+Emergiu organicamente ao longo das primeiras revisões e deve ser seguido
+por toda Guild nova ou revisada a partir de agora:
+
+1. **Cabeçalho** — `Applies to`, opcionalmente `Scope:` (quando nem toda
+   regra vale para todo tipo de Quest que a guild afirma cobrir — ver
+   Architecture Guild como referência), e `Status` (`draft` | `active`).
+2. **Purpose** — o que a guild define e, quando fizer sentido, como ela
+   se relaciona com guilds que já assumem suas regras (evita repetir o
+   conteúdo de outra guild só para dar contexto).
+3. **Rules** — cada regra com uma tag `> Enforcement:` (ver seção 10).
+   Regras devem incluir o "porquê", não só o "o quê", quando a
+   justificativa não for óbvia.
+4. **Out of scope** — dividido em dois grupos, não misturados:
+   - **"Real gap, not a conscious decision"** — o que falta porque
+     ninguém chegou lá ainda (ex: a Architecture Guild não define stack
+     para Quests `cli`/`script`).
+   - **"Conscious minimum-scope decisions"** — o que foi deliberadamente
+     deixado de fora, com justificativa (segue o teste de generalização
+     da seção 3).
+5. **Enforcement maturity** — quais regras `agent-reviewed` são
+   candidatas a virar `automated`, e por quê; quando uma regra é
+   mecânica o suficiente para automatizar na hora (não como candidato
+   futuro), ela é implementada diretamente — não fica esperando um ciclo
+   futuro só porque "ainda não tinha sido feito assim".
+6. **Proposal log** — referência padrão à seção 6.
+
+**Sincronização cruzada:** quando uma guild fecha uma pendência deixada
+em aberto por outra ("Out of scope" apontando "belongs to Guild X"), a
+guild de origem deve ser atualizada no mesmo commit — não só a que está
+fechando a pendência. Formalizado na AI/Agents Guild, com um check
+automatizado no próprio guildhall (limitação conhecida: o check confirma
+que o arquivo de origem foi tocado, não que a referência foi de fato
+substituída por um ponteiro real — ver `guild-proposals.md` do próprio
+guildhall).
+
 ---
 
 ## 4. Lista de Guilds
 
-**Núcleo (core) — aplicam-se a toda Quest:**
+**Núcleo (core) — aplicam-se a toda Quest — todas completas:**
 
-1. Architecture Guild — estrutura de pastas, camadas, contratos de API
-2. Security Guild — auth, secrets, dependências, práticas de segurança
-3. Data Guild — modelagem, migrations, backup, retenção
-4. Ops/Infra Guild — CI/CD, deploy, ambientes
-5. Testing/QA Guild — estratégia de testes, cobertura mínima
-6. Monitoring/Observability Guild — logs, métricas, alertas
-7. Code Style Guild — linters, formatters, convenções, **política de idioma**
-8. AI/Agents Guild — como a IA é usada no pipeline, prompts padrão
+1. Architecture Guild ✅
+2. Security Guild ✅
+3. Data Guild ✅
+4. Ops/Infra Guild ✅
+5. Testing/QA Guild ✅
+6. Monitoring/Observability Guild ✅
+7. Code Style Guild ✅
+8. AI/Agents Guild ✅
 
-**Condicionais — aplicam-se conforme o tipo de Quest:** 9. UX/Frontend Guild — só para Quests com interface visual 10. Documentation Guild — formato de README, ADRs 11. Product/Ideation Guild — padrão de como uma ideia vira Quest Brief
+**Condicionais — aplicam-se conforme o tipo de Quest:** 9. Documentation Guild ✅ 10. UX/Frontend Guild — em rascunho 11. Product/Ideation Guild — em rascunho
 
 ---
 
@@ -176,8 +219,10 @@ múltiplas Quests manualmente, e dá histórico real (changelog) da evolução d
 padrões da fábrica — o que o modelo de "pasta de arquivos" ou "monorepo único"
 não oferece de forma nativa.
 
-**Próximo passo técnico:** desenhar a estrutura de pastas do repositório
-`guildhall` e o esqueleto do CLI.
+**Status:** implementado e testado. O CLI (`bin/cli.js`, sem dependências
+externas) expõe `init`, `update` e `review-proposals`; o `guildhall init`
+já foi validado copiando as 11 guilds do manifesto para um projeto novo,
+com `.guildhall-lock.json` registrando a versão instalada.
 
 ---
 
@@ -265,9 +310,9 @@ virar proposta para o Chronicle (seção 6).
 ## 11. Decisões em aberto
 
 - Nomes temáticos finais para os agentes (Architect, Builder, QA, Reviewer,
-  Ops, Docs) e para os demais elementos provisórios (Chronicle, Guildhall,
-  Checkpoint).
-- Estrutura de pastas do repositório `guildhall` e esqueleto do CLI.
+  Ops, Docs) e para os demais elementos provisórios (Chronicle, Checkpoint).
+  `Guildhall` já está em uso consistente havia várias revisões — considerar
+  promovido de "provisório" para definitivo.
 - Nível de automação da orquestração de agentes (ainda não decidido — opções
   discutidas: scripts simples, slash commands por agente, ou orquestrador
   automático completo).
@@ -279,6 +324,21 @@ virar proposta para o Chronicle (seção 6).
   Quests com UI — mesmo princípio de generalização usado para promover
   propostas ao Chronicle (seção 6). Revisitar após ter Quests reais com
   interface visual.
+- **Duas Guilds condicionais ainda em rascunho**: UX/Frontend e
+  Product/Ideation (o prompt desta última já foi gerado mas ainda não
+  executado).
+- **Stack padrão para Quests `cli` e `script`** — gap real (não decisão
+  consciente) identificado durante a revisão da Architecture Guild: o
+  manifesto lista essas guilds como aplicáveis a todo tipo de Quest, mas
+  Architecture, Code Style e outras só definem conteúdo para `web-app`/
+  `api`. Só deve ser resolvido quando uma Quest desse tipo for realmente
+  tentada, não especulado agora.
+- **`guild-proposals.md` do próprio guildhall** — distinto dos
+  `guild-proposals.md` por Quest: acumula propostas sobre o próprio
+  mecanismo de guilds (ex: a limitação do check de sincronização cruzada
+  descoberta na revisão da Documentation Guild). Ainda não existe como
+  arquivo real no repositório, só como conceito referenciado pela
+  AI/Agents Guild — criar e popular com os itens já identificados.
 
 ---
 
