@@ -25,11 +25,11 @@ deploy time (step 10).
   2. Lint — `eslint` (Code Style Guild).
   3. Format check — `prettier --check` (Code Style Guild).
   4. Type check — `tsc --noEmit`. This Guild only defines *where* this
-     check runs in the pipeline. The rule itself — that types must be
-     checked, and how strictly — is not yet claimed by the Architecture
-     or Code Style Guild; that's an open gap, worth a
-     `guild-proposals.md` entry, not a rule this Guild is silently
-     assuming ownership of.
+     check runs in the pipeline; the rule itself — that types must be
+     checked, and how strictly (`strict: true` in `tsconfig.json`) — is
+     owned by the Architecture Guild's "Type checking" rule, since type
+     strictness is what makes that Guild's own layering guarantees
+     enforceable at compile time rather than just a convention.
   5. Unit tests with coverage — `vitest --coverage` (Testing/QA Guild).
   6. Secret scan — `gitleaks` (Security Guild).
   7. Dependency audit — `npm audit` (Security Guild).
