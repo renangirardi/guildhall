@@ -56,9 +56,10 @@ Consulted by the Ops agent post-deploy (development flow step 11).
   signal instead of guessing from the homepage, which can render `200`
   even when something underneath it is broken.
 - This checks that the app process itself is responding — it does not
-  check downstream dependencies (database, third-party APIs). Deeper
-  dependency healthchecks are deferred to the Data Guild once it exists
-  (see "Out of scope").
+  check downstream dependencies on its own. For a Quest with a database,
+  the Data Guild extends this same route with a connectivity check
+  rather than adding a separate one — see that Guild's "Dependency-aware
+  healthcheck" rule.
 - `/api/health` is not exempt from the Testing/QA Guild's API/route layer
   rule just because it's infrastructure rather than a product feature —
   it needs the same integration test (call the handler, assert on status
@@ -118,9 +119,9 @@ This Guild deliberately does not yet cover:
   team to page.
 - **SLA/SLO definitions** — no external customers to promise uptime to.
 - **Dashboards beyond what Vercel provides by default.**
-- **Dependency-aware healthchecks** (verifying the database or a
-  third-party API is reachable, not just that the app process responds)
-  — belongs with the Data Guild once it exists.
+- **Third-party API reachability in the healthcheck** — the Data Guild
+  covers the database case; checking a third-party API dependency the
+  same way is still undefined.
 - **Post-incident documentation format** — how an incident gets written
   up after the fact belongs with the Documentation Guild, which is still
   a draft; this Guild only defines the detection/response boundary, not

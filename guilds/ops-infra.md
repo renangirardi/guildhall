@@ -96,6 +96,9 @@ deploy time (step 10).
   - Any secret detected by `gitleaks`
   - Build failure
   - `npm audit` reporting a `high` or `critical` severity vulnerability
+  - Migration failure (`prisma migrate deploy`) — defined by the Data
+    Guild, which owns the migration job itself; listed here so this
+    Guild's blocking list stays complete on its own
 - **Warning only** (surfaced, does not block):
   - `npm audit` findings below `high` severity
   - Coverage changes outside `/lib`, since no blanket threshold applies
@@ -128,6 +131,10 @@ deploy time (step 10).
   that was rolled back *from*.
 - A rollback via promotion is a stopgap: a revert commit must still follow
   on `main` so the branch reflects what's actually live in production.
+- Promoting old code does not revert the database schema. Whether that's
+  safe is the Data Guild's guarantee, not this Guild's: its expand/
+  contract migration rule exists specifically so a code rollback never
+  lands on a schema it doesn't understand.
 > Enforcement: agent-recommended, human-confirmed — the Ops agent
 > detects the issue, identifies the target deployment, and proposes the
 > rollback; a human must confirm before it executes. The post-rollback
@@ -142,7 +149,6 @@ This Guild deliberately does not yet cover:
   at the current scale.
 - **Multi-region deploys, CDN/caching strategy, blue-green or canary
   releases** — not a need any Quest has surfaced yet.
-- **Database migrations** — owned by the Data Guild, not this one.
 - **Alerting on production incidents** — owned by the Monitoring/
   Observability Guild; this Guild stops at "the deploy succeeded."
 
