@@ -1,0 +1,71 @@
+{
+  "version": "0.1.0",
+  "guilds": [
+    {
+      "id": "architecture",
+      "file": "architecture.md",
+      "type": "core",
+      "appliesTo": ["web-app", "api", "cli", "script"]
+    },
+    {
+      "id": "security",
+      "file": "security.md",
+      "type": "core",
+      "appliesTo": ["web-app", "api", "cli", "script"]
+    },
+    {
+      "id": "code-style",
+      "file": "code-style.md",
+      "type": "core",
+      "appliesTo": ["web-app", "api", "cli", "script"]
+    },
+    {
+      "id": "testing-qa",
+      "file": "testing-qa.md",
+      "type": "core",
+      "appliesTo": ["web-app", "api", "cli", "script"]
+    },
+    {
+      "id": "ops-infra",
+      "file": "ops-infra.md",
+      "type": "core",
+      "appliesTo": ["web-app", "api"]
+    },
+    {
+      "id": "data",
+      "file": "data.md",
+      "type": "core",
+      "appliesTo": ["web-app", "api"]
+    },
+    {
+      "id": "monitoring",
+      "file": "monitoring.md",
+      "type": "core",
+      "appliesTo": ["web-app", "api"]
+    },
+    {
+      "id": "ai-agents",
+      "file": "ai-agents.md",
+      "type": "core",
+      "appliesTo": ["web-app", "api", "cli", "script"]
+    },
+    {
+      "id": "ux-frontend",
+      "file": "ux-frontend.md",
+      "type": "conditional",
+      "appliesTo": ["web-app"]
+    },
+    {
+      "id": "documentation",
+      "file": "documentation.md",
+      "type": "conditional",
+      "appliesTo": ["web-app", "api", "cli", "script"]
+    },
+    {
+      "id": "product-ideation",
+      "file": "product-ideation.md",
+      "type": "conditional",
+      "appliesTo": ["web-app", "api", "cli", "script"]
+    }
+  ]
+}
