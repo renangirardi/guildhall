@@ -55,7 +55,7 @@ makes "no hardcoded values" a mechanical check instead of a style
 preference.
 - **File**: `/styles/tokens.ts`, plain TypeScript — no React import, no
   styling-library dependency, so choosing one isn't implicitly forced by
-  where the file lives. It exports three `as const` objects:
+  where the file lives. It exports five `as const` objects:
   - `colors` — at minimum a `background`, `surface`, `text`,
     `textMuted`, `border`, `primary`, `danger`, `success`, and `warning`
     role. Roles, not raw swatches — a component references `colors.text`,
@@ -65,21 +65,118 @@ preference.
     pixel value chosen per component.
   - `typography` — a font-family stack and a type scale (e.g. `xs`
     through `2xl`) pairing a font size with a line height.
+  - `radius` — a fixed border-radius scale, by role rather than by size
+    letter (see "Default token values" below for why this shape differs
+    from `spacing`/`typography`).
+  - `sizing` — currently a single `touchTarget` value; the minimum
+    height/width of any pressable/interactive element.
 - This Guild standardizes the **shape** of `tokens.ts` and that it's the
-  single source of truth — not the actual values inside it. What a
-  Quest's palette or type scale actually *is* is a per-Quest visual-
-  identity decision (see "Out of scope").
-- No hardcoded color, spacing, or font value in `/app` or `/components` —
-  a hex/`rgb()`/`hsl()` literal, a raw pixel/rem spacing value in an
-  inline style or CSS file, or a font-family/font-size literal not
-  sourced from `tokens.ts`.
+  single source of truth. Unlike an earlier revision of this rule, the
+  values below are not left fully open per-Quest — "Default token values"
+  gives every Quest a concrete starting palette and scale, sourced from a
+  real, developer-validated app rather than invented; a Quest may still
+  deviate (see that section's closing note).
+- No hardcoded color, spacing, font, radius, or sizing value in `/app` or
+  `/components` — a hex/`rgb()`/`hsl()` literal, a raw pixel/rem spacing
+  value in an inline style or CSS file, a font-family/font-size literal,
+  a `border-radius` literal, or a minimum-dimension literal on a
+  pressable element (e.g. `minHeight: 48`), not sourced from `tokens.ts`,
+  is the same class of violation regardless of which of the five exports
+  it should have come from.
 > Enforcement: automated (custom) — a script (or a small custom ESLint
-> rule) scans `/app` and `/components` for hardcoded color, spacing, and
-> typography literals outside `tokens.ts`, the same regex-heuristic shape
-> as the Code Style Guild's Portuguese-stopword scan and the Security
-> Guild's `NEXT_PUBLIC_` name check. The file's required shape (the three
-> exports and their minimum keys) is checked by a scaffold-time script;
-> whether a chosen palette or scale is *good* is not this Guild's concern.
+> rule) scans `/app` and `/components` for hardcoded color, spacing,
+> typography, radius, and sizing literals outside `tokens.ts`, the same
+> regex-heuristic shape as the Code Style Guild's Portuguese-stopword
+> scan and the Security Guild's `NEXT_PUBLIC_` name check. The file's
+> required shape (the five exports and their minimum keys) is checked by
+> a scaffold-time script; whether a chosen palette or scale is *good* is
+> not this Guild's concern.
+
+### Default token values
+`tokens.ts` is not scaffolded empty. This Guild ships a concrete default
+palette and scale, extracted from a real Expo/React Native + NativeWind
+app whose visual identity the developer had already built and validated
+in production use — not guessed at, the same "a rule is promoted from
+real evidence, not speculation" discipline used everywhere else in this
+project (see the master spec, section 6, and this Guild's own "Design
+system / reusable component library" line in "Out of scope"). A Quest
+scaffold starts with these values already in `tokens.ts`; nothing here
+requires copying them by hand.
+
+- **`colors`** (hex, source app's dark-only palette — see "Dark mode /
+  theming strategy" in "Out of scope"):
+  `{ background: "#18181b", surface: "#27272a", text: "#f4f4f5",
+  textMuted: "#a1a1aa", border: "#3f3f46", primary: "#2563eb",
+  danger: "#991b1b", success: "#16a34a", warning: "#ca8a04" }`
+  - Every role above maps to a color the source app actually uses for
+    that purpose (its primary action buttons, its destructive/danger
+    button variant, its "mark complete" success action) — **except**
+    `warning`: the source app has no warning role anywhere in its UI. The
+    value above is the closest available color in that app's palette
+    (the accent used for its "Market" section), not a role that app
+    actually treats as a warning. Flagged here, not silently promoted as
+    equally evidenced — the next Quest that needs a real warning state
+    (a destructive-but-not-yet-confirmed action, a stale-data notice) is
+    the first real evidence for this specific role, the same way any
+    other gap in this project waits for a real instance before it's
+    trusted as more than a placeholder.
+- **`spacing`** (px): `{ xs: 4, sm: 8, md: 16, lg: 24, xl: 32, "2xl": 48 }`
+  — the source app's own spacing values (margin, padding, gap) fall
+  cleanly on this scale in every component read; nothing in between was
+  observed.
+- **`typography`**:
+  - `fontFamily`: the system default font stack, not a bundled custom
+    font — the source app never loads one (no `expo-font`/`useFonts`
+    usage). This is a platform translation, not an invented value: the
+    source app's actual decision ("use the platform's native font, ship
+    nothing extra") carries over as-is; only the syntax changes for a web
+    target, since a Next.js Quest has no equivalent to React Native's
+    `System` font identifier. The concrete default is the standard
+    system-ui stack: `-apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif`.
+  - Type scale (`fontSize`/`lineHeight`, px): `{ xs: [12, 16],
+    sm: [14, 20], md: [16, 24], lg: [18, 28], xl: [20, 28],
+    "2xl": [24, 32] }` — a 1:1 match with the source app's own
+    `text-xs`…`text-2xl` usage (NativeWind resolves to the same default
+    Tailwind type scale a Next.js Quest's Tailwind config would). One
+    larger size (`text-3xl`, a single page-title heading) was observed
+    but only once, in one component — not promoted into the base scale,
+    the same "not a value used once" bar this Guild already applies
+    elsewhere.
+- **`radius`** (px) — an extension to the token *format* this Guild
+  defines, not just a value fill-in. The source app has no single
+  `borderRadius` scalar; it has a genuinely consistent **role-based**
+  pattern repeated across dozens of components: one radius for
+  pressable controls, a larger one for cards/inputs/containers, a larger
+  one still for modals and bottom-sheet-style surfaces, and a pill radius
+  for circular icon buttons and progress bars. That's consistent enough,
+  and general enough, to pass this Guild's own promotion test (would this
+  hold for any Quest with a UI, not just this one app) — most
+  component-driven UIs distinguish "control" from "card" from "sheet"
+  radii the same way. `{ control: 6, surface: 8, sheet: 12, pill: 9999 }`.
+- **`sizing`** (px) — also a format extension, evidenced more thinly than
+  `radius`: the source app consistently sizes every pressable/interactive
+  element (its primary Button, its icon-only buttons) to a 48px minimum
+  height/width. That number isn't idiosyncratic to this app either — it
+  matches the minimum touch-target size both Apple's and Google's mobile
+  platform guidelines recommend, which is why it's promoted as a default
+  rather than held back as a one-app coincidence despite the smaller
+  number of distinct components it was observed in. `{ touchTarget: 48 }`.
+
+**Deviation**: these are defaults, not a permanent requirement. A Quest
+may ship a different palette, scale, or set of radius/sizing values when
+its Quest Brief states a specific technical or visual-identity reason the
+defaults don't fit — the same "stated reason, not silent default"
+discipline the Architecture Guild's "Default stack" and the Data Guild's
+"Default database" rules already use. What stays fixed either way is the
+*shape*: whatever values a Quest chooses still live in `tokens.ts`, as
+these same five exports, referenced by role — not the specific hex codes
+or pixel numbers above.
+> Enforcement: the shape and the hardcoded-value scan above are
+> `automated (custom)`, unchanged by this section. Whether a stated
+> deviation in a Quest Brief is genuinely justified is `agent-reviewed`,
+> the same judgment call the Architecture and Data Guilds' own deviation
+> clauses already require.
 
 ### Accessibility baseline (WCAG AA)
 Automated checks, run via `eslint-plugin-jsx-a11y` (layered on top of the
@@ -194,13 +291,12 @@ covered:
   generalization test used to promote a `guild-proposals.md` entry into a
   Guild rule (spec section 6). Revisit once that repetition is real, not
   before.
-- **Actual token values** (a specific palette, the exact numeric spacing/
-  type scale) — this Guild standardizes `tokens.ts`'s shape and the
-  enforcement mechanism against hardcoding, not the values themselves;
-  each Quest's visual identity is its own decision, the same reasoning
-  the Architecture Guild uses for not opinionating on a state-management
-  library.
-- **Dark mode / theming strategy** — no Quest has needed one yet.
+- **Dark mode / theming strategy** — no Quest has needed one yet. The
+  default palette in "Default token values" above is itself dark-only
+  (sourced from a dark-only app) — it is not this Guild taking a stance
+  on light/dark theming, just the color values one real app happened to
+  validate. A Quest needing a light theme, or both, still designs that
+  strategy itself.
 - **A wireframing/mockup tool or format** (Figma or equivalent) — the
   Quest Brief captures acceptance criteria against this Guild's baseline
   (see "Visual requirements in the Quest Brief"), not a visual mockup;

@@ -221,7 +221,7 @@ is being initialized — any Quest that wants to use the agent-
 orchestration flow hits this same missing-wiring gap, since it's a
 property of the CLI, not of a specific Quest's content.
 
-**Status**: Open — not yet promoted. This is squarely the "level of
+**Status**: Resolved (2026-08-24). This is squarely the "level of
 orchestration automation" question `docs/spec.md` section 11 already
 lists as undecided (scripts vs. per-agent slash commands vs. a full
 orchestrator) and that `guilds/ai-agents.md` explicitly keeps out of its

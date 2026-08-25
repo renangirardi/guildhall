@@ -392,8 +392,14 @@ o que depende de julgamento:
 **Caso de destaque — UX/Frontend Guild:** é a Guild condicional com maior
 potencial de automação. Estrutura sugerida em duas partes:
 
-- Um arquivo de **tokens** (cores, espaçamento, tipografia) como valores
-  objetivos — não em prosa — que o lint valida contra hardcoding.
+- Um arquivo de **tokens** (cores, espaçamento, tipografia, radius e
+  sizing — as duas últimas adicionadas como extensão de formato, ver
+  `guilds/ux-frontend.md`, "Default token values") como valores
+  objetivos — não em prosa — que o lint valida contra hardcoding. Os
+  valores default hoje não ficam mais em aberto por Quest: foram
+  promovidos a partir de um app real já validado pelo desenvolvedor
+  (mesma seção da Guild), com desvio possível mediante justificativa no
+  Quest Brief.
 - Um arquivo `accessibility.md` com regras de acessibilidade, a maioria
   `automated` via axe-core/Lighthouse CI, algumas `agent-reviewed` (ex:
   experiência real com leitor de tela).
