@@ -1,7 +1,7 @@
 {
   "name": "guildhall",
   "version": "0.1.0",
-  "description": "AI Adventure — guild standards distributed as an installable CLI",
+  "description": "AetherForge — guild standards distributed as an installable CLI",
   "bin": {
     "guildhall": "./bin/cli.js"
   },

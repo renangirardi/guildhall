@@ -1,16 +1,28 @@
-# AI Adventure — Documento de especificação
+# AetherForge — Documento de especificação
 
 > Documento de referência para dar continuidade ao projeto em novas conversas.
-> Última atualização: 2026-08-24
+> Última atualização: 2026-08-25
 
 ---
 
 ## 1. Visão geral
 
-**AI Adventure** é um sistema pessoal para desenvolver projetos de software usando
+**AetherForge** é um sistema pessoal para desenvolver projetos de software usando
 agentes de IA de forma padronizada e reutilizável, ao invés de resolver cada
 projeto do zero. A metáfora do projeto é de aventura/RPG: guildas definem
 padrões, heróis (agentes) executam missões (aplicações) seguindo esses padrões.
+
+**Nota de nomenclatura:** "AetherForge" é o nome do projeto/metodologia como um
+todo — o que vai pro portfólio, o que descreve o sistema inteiro. `guildhall` é
+o nome do repositório central específico dentro do AetherForge, que implementa
+o motor de padrões (Guilds) e de orquestração de agentes. A relação é a mesma
+de "Kubernetes" e `kubectl`, ou "Docker" e Docker Engine: um nome guarda-chuva
+para o projeto, e um nome específico e tecnicamente descritivo para o
+repositório/ferramenta central dentro dele. `guildhall` não precisou ser
+renomeado quando seu escopo cresceu (de "guardar guilds" para "guardar
+guilds e orquestrar agentes") porque a metáfora já comportava isso desde
+o início — um guildhall, num RPG, sempre foi também o lugar que despacha
+aventureiros para missões, não só um arquivo de regras.
 
 **Objetivo duplo:**
 
@@ -20,13 +32,13 @@ padrões, heróis (agentes) executam missões (aplicações) seguindo esses padr
    por isso a decisão de manter todo artefato de código em inglês.
 
 **Status atual:** conceito validado através de um MVP completo (ideação →
-deploy). O `guildhall` (repositório de Guilds como CLI instalável) está
-construído e testado — comandos `init`, `update` e `review-proposals`
-funcionais. As 11 Guilds (8 core + 3 condicionais) estão completas,
-incluindo uma segunda passada de revisão nas 3 Guilds originais do MVP
-(Architecture, Security, Code Style), que nasceram como versões "mini" e
-foram elevadas ao mesmo padrão de rigor das demais. Nenhuma Quest real
-(além do MVP) foi construída ainda com o sistema completo.
+deploy). O `guildhall` (repositório central do AetherForge) está construído e
+testado — comandos `init`, `update` e `review-proposals` funcionais. As 11
+Guilds (8 core + 3 condicionais) estão completas, incluindo uma segunda
+passada de revisão nas 3 Guilds originais do MVP (Architecture, Security,
+Code Style), que nasceram como versões "mini" e foram elevadas ao mesmo
+padrão de rigor das demais. Nenhuma Quest real (além do MVP) foi construída
+ainda com o sistema completo.
 
 A orquestração de agentes também está implementada (sessão de 2026-08-24,
 quatro fases): os 7 subagentes temáticos, a skill orquestradora
@@ -39,11 +51,12 @@ quatro fases): os 7 subagentes temáticos, a skill orquestradora
 
 | Termo           | Definição                                                                                                                                                     |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **AetherForge** | Nome definitivo do projeto/metodologia como um todo.                                                                                                          |
 | **Guild**       | Conjunto de padrões e decisões reutilizáveis (arquitetura, segurança, estilo de código, etc.) que qualquer Quest deve seguir. Não contém código de aplicação. |
 | **Quest**       | Uma aplicação/projeto individual construído a partir dos padrões das Guilds (antes chamado de "Program").                                                     |
 | **Quest Brief** | O documento de requisitos de uma Quest (antes chamado de "PRD").                                                                                              |
 | **Chronicle**   | Registro de propostas de melhoria a uma Guild (`guild-proposals.md`), geradas durante o desenvolvimento de uma Quest, aguardando revisão humana.              |
-| **Guildhall**   | O repositório central onde as Guilds vivem, empacotado como CLI instalável.                                                                                   |
+| **Guildhall**   | O repositório central específico dentro do AetherForge, onde as Guilds e os templates de orquestração de agentes vivem, empacotado como CLI instalável.       |
 | **Checkpoint**  | Gate humano de revisão dentro do fluxo de desenvolvimento (passos 4 e 9).                                                                                     |
 
 **Nomes temáticos dos agentes (definitivos):**
@@ -63,8 +76,6 @@ do Claude Code em `templates/claude/agents/` (`herald.md`,
 `loremaster.md`, `artificer.md`, `sentinel.md`, `warden.md`,
 `quartermaster.md`, `scribe.md`) — ver seção 5.1 para como eles são
 coordenados.
-
-**Em aberto:** nome final do projeto (seção 11).
 
 ---
 
@@ -259,7 +270,7 @@ guildhall, distinto do `guild-proposals.md` de cada Quest — acumula
 propostas sobre o mecanismo de guilds/CLI em si (não sobre uma Quest
 específica). Já tem 3 propostas registradas: uma resolvida (a extensão do
 `init`/`update` para distribuir os templates de agente, seção 7), e duas
-ainda abertas (a limitação do check de sincronização cruzada, seção 3.1;
+ainda abertas (a limitação do check de sincronização cruzada, seção 3.2;
 e o gate de enforcement do Quartermaster, que hoje é só por instrução, sem
 lastro a nível de ferramenta). Conteúdo completo no próprio arquivo, não
 repetido aqui.
@@ -270,8 +281,9 @@ repetido aqui.
 
 **Modelo escolhido: Guilds como pacote/CLI instalável.**
 
-- As Guilds vivem em um repositório central (nome provisório: `guildhall`),
-  publicado como pacote (npm ou equivalente, mesmo que só localmente).
+- As Guilds vivem em um repositório central (`guildhall`, nome
+  definitivo — ver nota de nomenclatura na seção 1), publicado como
+  pacote (npm ou equivalente, mesmo que só localmente).
 - Um CLI expõe comandos como:
   - `init` — copia as Guilds relevantes (core + condicionais conforme tipo de
     Quest) para dentro de um novo projeto **e também** os templates de
@@ -393,11 +405,6 @@ virar proposta para o Chronicle (seção 6).
 
 ## 11. Decisões em aberto
 
-- Nomes temáticos finais para os agentes (Architect, Builder, QA, Reviewer,
-  Ops, Docs) e para os demais elementos provisórios (Chronicle, Checkpoint).
-  `Guildhall` já está em uso consistente havia várias revisões — considerar
-  promovido de "provisório" para definitivo.
-- Nome final do projeto (trabalhando com "AI Adventure" como proposta).
 - **Design system para a UX/Frontend Guild** — decisão adiada de propósito.
   Começar apenas pelos tokens (cores, espaçamento, tipografia), automatizáveis
   via lint. Componentes reais (Button, Input, Card...) só devem ser extraídos

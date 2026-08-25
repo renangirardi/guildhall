@@ -1,7 +1,8 @@
 # guildhall
 
-Central repository for AI Adventure guild standards, distributed as an
-installable, zero-dependency CLI.
+Core repository of the AetherForge system: guild standards and
+agent-orchestration templates, distributed as an installable,
+zero-dependency CLI.
 
 ## Install (local, no npm registry needed)
 
