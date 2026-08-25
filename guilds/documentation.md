@@ -195,7 +195,17 @@ existing authoring process already is one.
 > already applies to that authoring loop.
 
 ## Out of scope
-This Guild deliberately does not yet cover:
+
+**Real gap, not a conscious decision:**
+- **Diagramming conventions** (architecture diagrams, sequence diagrams)
+  — no standard tool or format has been chosen. Nothing here says why;
+  it just hasn't been picked yet.
+
+Worth a `guild-proposals.md` entry once a real Quest's architecture is
+complex enough that a diagram would actually help a reader, rather than
+guessed at now with nothing to validate against.
+
+**Conscious minimum-scope decisions:**
 - **Documentation site generators** (Docusaurus, VitePress, or
   equivalent) — a Quest's docs live as plain markdown in its own repo;
   no rendered site is standard yet.
@@ -203,16 +213,13 @@ This Guild deliberately does not yet cover:
   not needed at the current scale of a personal-project API surface.
 - **A CHANGELOG.md convention** per Quest — commit history (Conventional
   Commits, per the Code Style Guild) is the record for now.
-- **Diagramming conventions** (architecture diagrams, sequence diagrams)
-  — no standard tool or format has been chosen yet.
 - **Translation / i18n of documentation** — the language policy (master
   spec, section 8) is English-only; there is no multi-language docs need
   to address.
 
-This is a conscious minimum-scope decision for the current stage of the
-project, not an oversight — these are candidates for a future revision of
-this Guild once real Quests surface a concrete need, not something to
-re-propose from scratch via `guild-proposals.md`.
+These four are candidates for a future revision of this Guild once real
+Quests surface a concrete need, not something to re-propose from scratch
+via `guild-proposals.md`.
 
 ## Enforcement maturity
 The README section-presence check already matured directly into

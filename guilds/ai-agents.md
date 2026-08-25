@@ -201,24 +201,26 @@ Guild-authoring one — should include:
 > the way code is.
 
 ## Out of scope
-This Guild deliberately does not yet cover:
-- **Multi-agent orchestration mechanics** — how agents actually hand off
-  to each other (sequential CLI invocation, a full orchestrator, or
-  something in between) is an explicitly open decision in the master
-  spec (section 11), not settled here.
+
+**Real gap, not a conscious decision:**
+- **Cost or token budget management** per agent — nothing here explains
+  why this was left out; it simply hasn't been addressed.
+- **Arbitration when two agents' outputs conflict** (e.g. the Architect's
+  design and the Data Guild's default disagree in a specific case) — no
+  resolution rule is defined, and nothing states this was deliberate.
+
+Worth a `guild-proposals.md` entry once a real Quest actually surfaces
+one of these, rather than guessed at now with nothing to validate
+against.
+
+**Conscious minimum-scope decisions:**
 - **Literal system prompts / persona text** per named agent — the roles
   and their authority boundaries are defined here; the prompt templates
   themselves are Quest-tooling, not Guild content.
-- **Cost or token budget management** per agent — not a concern this
-  Guild addresses yet.
-- **Arbitration when two agents' outputs conflict** (e.g. the Architect's
-  design and the Data Guild's default disagree in a specific case) — no
-  resolution rule is defined yet.
 
-This is a conscious minimum-scope decision for the current stage of the
-project, not an oversight — these are candidates for a future revision of
-this Guild once real Quests surface a concrete need, not something to
-re-propose from scratch via `guild-proposals.md`.
+This last one is a candidate for a future revision of this Guild once
+real Quests surface a concrete need, not something to re-propose from
+scratch via `guild-proposals.md`.
 
 ## Enforcement maturity
 "Cross-guild synchronization" was the obvious first candidate here — it

@@ -16,6 +16,68 @@ until a real cli/script Quest is attempted, not guessed at now.
 
 ---
 
+## Proposal: Extend cross-guild synchronization to also cover a Guild referencing `docs/spec.md`, not only another Guild
+
+**Affected Guild**: AI/Agents Guild — "Cross-guild synchronization" rule
+
+**Context**: During the "Out of scope" audit that split every core/
+conditional Guild's deferred items into "Real gap" vs. "Conscious
+minimum-scope decision" (guildhall, 2026-08-25), the AI/Agents Guild's
+own "Out of scope" section was found pointing at a decision that no
+longer existed as open: it named "Multi-agent orchestration mechanics"
+as "an explicitly open decision in the master spec (section 11), not
+settled here." But `docs/spec.md` section 5.1 ("Orquestração dos agentes
+— decisão tomada," session 2026-08-24) had already resolved exactly this
+— the day before the audit — without `guilds/ai-agents.md` ever being
+updated to match. The "Cross-guild synchronization" rule as written only
+covers one Guild closing a gap left open by *another Guild's* "Out of
+scope" line; it says nothing about the same staleness risk when the
+thing that changed underneath a Guild's forward reference is
+`docs/spec.md` itself rather than a sibling Guild. That's exactly what
+happened here: the master spec closed the gap, no Guild was the one
+doing the closing, and the AI/Agents Guild's own text was left pointing
+at a decision that had already been made. It was caught by the same kind
+of human review the existing rule already relies on as its backstop, not
+by the automated check — which, as written, has no reason to even look
+at `docs/spec.md` for a matching update.
+
+**Proposed rule**: Extend "Cross-guild synchronization" (and, if
+feasible, its `automated (custom)` check) to also apply when a Guild's
+"Out of scope" section (or any rule) forward-references a `docs/spec.md`
+section as the place a decision will be or was made — not only a
+sibling Guild file. Whenever a diff to `docs/spec.md` resolves a
+decision that some Guild's text names as pending in a specific spec
+section, that Guild should be updated in the same commit, the same
+discipline already required guild-to-guild. The existing check's scan
+pattern ("belongs to Guild X", "owned by Guild X") would need a matching
+pattern for spec references (e.g. "master spec, section N", "docs/
+spec.md section N") to catch this mechanically; short of that, it's at
+least worth naming explicitly as part of the rule's judgment-call scope
+so an agent or reviewer knows to check for it.
+
+**Evidence**: guildhall, "Out of scope" reclassification session
+(2026-08-25) — see `guilds/ai-agents.md`'s "Out of scope" section before
+this session's fix, which named `docs/spec.md` section 11 as the home of
+an open decision that section 5.1 had already resolved on 2026-08-24.
+
+**Generalization test**: Applies the same way regardless of which Guild
+or which spec section is involved — any Guild that names a `docs/
+spec.md` section as "not yet decided" carries the same risk of going
+stale the moment that section of the spec is actually resolved, since
+nothing today ties a spec edit back to the Guild files that reference it.
+This is the same shape of problem "Cross-guild synchronization" already
+solves for Guild-to-Guild references, just with the master spec as the
+other end of the pointer instead of a sibling Guild.
+
+**Status**: Open — not yet promoted. Whether to extend the existing
+automated check's regex or leave this as an `agent-reviewed` addition to
+the rule's text is a design choice for whoever picks this up; either way,
+the AI/Agents Guild's own "Out of scope" text has already been corrected
+for this specific instance (2026-08-25) — this proposal is about closing
+the general pattern, not the one instance that surfaced it.
+
+---
+
 ## Proposal: Tighten the cross-guild synchronization check to require a positive back-reference, not just a touched file
 
 **Affected Guild**: AI/Agents Guild — "Cross-guild synchronization" rule

@@ -118,21 +118,31 @@ Consulted by the Ops agent post-deploy (development flow step 11).
 > human-confirmed for proposing and taking any corrective action.
 
 ## Out of scope
-This Guild deliberately does not yet cover:
+
+**Real gap, not a conscious decision:**
+- **Third-party API reachability in the healthcheck** — the Data Guild
+  extended `/api/health` with a database-connectivity check
+  ("Dependency-aware healthcheck" above), but checking a third-party API
+  dependency the same way is still undefined, with no stated reason it
+  was left out — it simply hasn't been built yet.
+
+Worth a `guild-proposals.md` entry once a Quest that actually depends on
+a third-party API for its core function needs this, rather than guessed
+at now with nothing to validate against.
+
+**Conscious minimum-scope decisions:**
 - **APM / distributed tracing** (Datadog, New Relic, OpenTelemetry) — not
   needed at the current single-service, single-developer scale.
 - **On-call rotation or paging** (PagerDuty or equivalent) — there is no
   team to page.
 - **SLA/SLO definitions** — no external customers to promise uptime to.
-- **Dashboards beyond what Vercel provides by default.**
-- **Third-party API reachability in the healthcheck** — the Data Guild
-  covers the database case; checking a third-party API dependency the
-  same way is still undefined.
+- **Dashboards beyond what Vercel provides by default** — same
+  personal-project-scale reasoning as the three items above; Vercel's own
+  dashboards are the standard until a Quest's needs outgrow them.
 
-This is a conscious minimum-scope decision for the current stage of the
-project, not an oversight — these are candidates for a future revision of
-this Guild once real Quests surface a concrete need, not something to
-re-propose from scratch via `guild-proposals.md`.
+These four are candidates for a future revision of this Guild once real
+Quests surface a concrete need, not something to re-propose from scratch
+via `guild-proposals.md`.
 
 ## Enforcement maturity
 The most likely `agent-reviewed` rule to mature into `automated` (per the

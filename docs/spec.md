@@ -254,7 +254,8 @@ Implementação (sessão de 2026-08-24, quatro fases):
    ```
 
 2. Periodicamente, você roda uma revisão consolidada das propostas de todas
-   as Quests (comando de CLI a definir).
+   as Quests via o comando de CLI `review-proposals` (`bin/cli.js` — ver
+   seção 7).
 3. Você decide: aceitar (vira regra na Guild, com bump de versão e changelog),
    rejeitar (fica registrado pra não repetir a discussão) ou adiar.
 4. Quests existentes não são atualizadas automaticamente — ficam fixas na

@@ -134,7 +134,19 @@ Closes the Monitoring Guild's "Dependency-aware healthchecks" item.
 > hardcoded connection string as a leaked secret; no new tooling needed.
 
 ## Out of scope
-This Guild deliberately does not yet cover:
+
+**Real gap, not a conscious decision:**
+- **Seed data / local fixtures strategy** — no default for populating a
+  local or preview database with test data has been defined. Unlike the
+  items below, nothing states a reason it was left out — it's undefined
+  because no Quest with a database has gone through a full build yet, not
+  because this Guild weighed it and chose to wait.
+
+Worth a `guild-proposals.md` entry once a real Quest with a database
+actually needs local seed data, rather than guessed at now with nothing
+to validate against.
+
+**Conscious minimum-scope decisions:**
 - **Data warehousing / analytics pipelines** (dbt, ETL) — no Quest has
   needed one yet.
 - **Multi-region replication** — not needed at the current scale.
@@ -144,12 +156,10 @@ This Guild deliberately does not yet cover:
 - **Compliance-driven retention or deletion workflows** (GDPR-style
   "right to be forgotten," audit logging) — personal-project scope for
   now; revisit if a Quest actually needs it.
-- **Seed data / local fixtures strategy** — not yet defined.
 
-This is a conscious minimum-scope decision for the current stage of the
-project, not an oversight — these are candidates for a future revision of
-this Guild once real Quests surface a concrete need, not something to
-re-propose from scratch via `guild-proposals.md`.
+These four are candidates for a future revision of this Guild once real
+Quests surface a concrete need, not something to re-propose from scratch
+via `guild-proposals.md`.
 
 ## Enforcement maturity
 The point-in-time-recovery check in "Backup and retention" was the

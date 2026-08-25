@@ -201,20 +201,31 @@ step 5) and by the Ops agent at deploy time (step 10).
 > confirmed and executed.
 
 ## Out of scope
-This Guild deliberately does not yet cover:
+
+**Real gap, not a conscious decision:** none — every item previously
+listed in this section carries an explicit reason tied to this project's
+current scale or an already-chosen substitute, not silence born of never
+having gotten there (see below).
+
+**Conscious minimum-scope decisions:**
 - **Infrastructure as code** (Terraform or equivalent) — Vercel's own
   dashboard/CLI configuration is the standard for now.
 - **A persistent staging environment** — preview-per-PR fills that role
-  at the current scale.
+  at the current scale, per "Environment strategy" above, which already
+  states this directly as a Rule rather than leaving it only as a
+  deferral here.
 - **Multi-region deploys, CDN/caching strategy, blue-green or canary
   releases** — not a need any Quest has surfaced yet.
 - **Alerting on production incidents** — owned by the Monitoring/
-  Observability Guild; this Guild stops at "the deploy succeeded."
+  Observability Guild; this Guild stops at "the deploy succeeded." Unlike
+  the three items above, this one is a permanent ownership boundary, not
+  a temporary deferral — it isn't expected to ever move back into this
+  Guild's scope.
 
-This is a conscious minimum-scope decision for the current stage of the
-project, not an oversight — these are candidates for a future revision of
-this Guild once real Quests surface a concrete need, not something to
-re-propose from scratch via `guild-proposals.md`.
+The first three are candidates for a future revision of this Guild once
+real Quests surface a concrete need, not something to re-propose from
+scratch via `guild-proposals.md`. The fourth already has a home — the
+Monitoring/Observability Guild — so there's nothing left to revisit here.
 
 ## Enforcement maturity
 The most likely `agent-reviewed` candidate to mature into `automated`

@@ -105,18 +105,33 @@ A test is good enough when it satisfies all of the following:
 > Enforcement: agent-reviewed.
 
 ## Out of scope
-This Guild deliberately does not yet cover:
-- **Integration/e2e tests** — full user-flow testing across the whole
-  Quest (e.g. Playwright/Cypress).
-- **Flaky test policy** — what to do with a test that fails
-  non-deterministically (quarantine, retry, delete).
-- **Test suite runtime expectations** — how long the suite is allowed to
-  take before it's considered a problem.
 
-This is a conscious minimum-scope decision for the current stage of the
-project, not an oversight — these are candidates for a future revision of
-this Guild once real Quests surface a concrete need, not something to
-re-propose from scratch via `guild-proposals.md`.
+**Real gap, not a conscious decision:**
+- **Integration/e2e tests** — full user-flow testing across the whole
+  Quest (e.g. Playwright/Cypress). "Test types by layer" above defines a
+  strategy per layer (`/lib`, UI, API/route, CLI) but never addresses a
+  flow spanning several of them together, and nothing here explains why
+  — it simply hasn't been decided yet.
+- **Flaky test policy** — what to do with a test that fails
+  non-deterministically (quarantine, retry, delete). No stated reason
+  this was left out, unlike e.g. the Ops/Infra Guild's scale-contingent
+  deferrals — it's undefined because no Quest has hit this yet, not
+  because the question was deliberately deferred.
+- **Test suite runtime expectations** — how long the suite is allowed to
+  take before it's considered a problem. Same as above: silent, not
+  ruled out on purpose.
+
+None of these three carry a stated reason for being left out the way,
+for example, the Security Guild's CORS or rate-limiting deferrals do —
+they're silent because no Quest has been built at the scale or maturity
+to surface them, not because this Guild weighed them and chose to wait.
+Worth a `guild-proposals.md` entry once a real Quest actually needs one
+of these, rather than guessed at now with nothing to validate against.
+
+**Conscious minimum-scope decisions:** none — every item previously
+listed in this section turned out, on review, to be a real gap rather
+than a deliberately narrowed decision with a stated justification (see
+above).
 
 ## Enforcement maturity
 Among the `agent-reviewed` rules above, the ones built from narrow,
