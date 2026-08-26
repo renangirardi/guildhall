@@ -31,19 +31,28 @@ aventureiros para missões, não só um arquivo de regras.
 2. Servir como peça de portfólio para currículo, visando empresas globais —
    por isso a decisão de manter todo artefato de código em inglês.
 
-**Status atual:** conceito validado através de um MVP completo (ideação →
-deploy). O `guildhall` (repositório central do AetherForge) está construído e
-testado — comandos `init`, `update` e `review-proposals` funcionais. As 11
-Guilds (8 core + 3 condicionais) estão completas, incluindo uma segunda
-passada de revisão nas 3 Guilds originais do MVP (Architecture, Security,
-Code Style), que nasceram como versões "mini" e foram elevadas ao mesmo
-padrão de rigor das demais. Nenhuma Quest real (além do MVP) foi construída
-ainda com o sistema completo.
+**Status atual:** o `guildhall` (repositório central do AetherForge) está
+construído e testado — comandos `init`, `update` e `review-proposals`
+funcionais. As 11 Guilds (8 core + 3 condicionais) estão completas, incluindo
+uma segunda passada de revisão nas 3 Guilds originais do MVP (Architecture,
+Security, Code Style), que nasceram como versões "mini" e foram elevadas ao
+mesmo padrão de rigor das demais. A orquestração de agentes também está
+implementada (sessão de 2026-08-24, quatro fases): os 7 subagentes temáticos,
+a skill orquestradora `/quest-flow` e a distribuição de ambos via
+`init`/`update` — ver seção 5.1 e seção 7.
 
-A orquestração de agentes também está implementada (sessão de 2026-08-24,
-quatro fases): os 7 subagentes temáticos, a skill orquestradora
-`/quest-flow` e a distribuição de ambos via `init`/`update` — ver seção
-5.1 e seção 7.
+O MVP original (calculadora, repositório e deploy na Vercel) foi
+desativado — seus aprendizados já estavam capturados na seção 9 antes da
+exclusão. **A primeira Quest real com o sistema completo está em
+andamento**: `calculator-quest`, a mesma ideia da calculadora, agora
+passando pelo fluxo inteiro via `/quest-flow` (Herald → Loremaster →
+Checkpoint → Artificer → ...). Já passou pelo scaffold inicial e está em
+implementação; um problema de ambiente já surgiu e foi resolvido
+(hook `commit-msg` do Husky falhando no GitHub Desktop no Windows por
+não enxergar o PATH completo — contornado via commit pelo terminal ou
+`--no-verify`, com o CI como gate real de qualquer forma, já que a
+Ops/Infra Guild nunca tratou o hook local como a garantia de fato). Essa
+Quest ainda não chegou ao Checkpoint do passo 9.
 
 ---
 
@@ -226,7 +235,9 @@ Implementação (sessão de 2026-08-24, quatro fases):
 - Progresso é persistido em `.quest-progress.json`, na raiz da própria
   Quest, justamente para sobreviver a múltiplas sessões — inclusive
   depois de um `/clear`, quando o contexto da conversa é perdido mas o
-  arquivo continua no disco.
+  arquivo continua no disco. Também sobrevive a interrupções por limite
+  de uso do Claude Code (janela de 5h / limite semanal) pelo mesmo
+  motivo: é estado em disco, não em memória de conversa.
 - Aplicabilidade por tipo de Quest é respeitada em duas camadas: cada
   agente já sabe dizer "não se aplica" internamente (o Quartermaster é o
   exemplo — steps 10-11 não fazem sentido para `cli`/`script`), e a
@@ -276,6 +287,12 @@ e o gate de enforcement do Quartermaster, que hoje é só por instrução, sem
 lastro a nível de ferramenta). Conteúdo completo no próprio arquivo, não
 repetido aqui.
 
+A `calculator-quest` (seção 1) já tem seu próprio `guild-proposals.md`
+com pelo menos um item real: o hook `commit-msg` do Husky falhando no
+GitHub Desktop por não enxergar o PATH completo no Windows — candidato a
+propor que o `.husky/commit-msg` gerado no scaffold já venha com a
+exportação de PATH corrigida por padrão (Code Style Guild).
+
 ---
 
 ## 7. Distribuição das Guilds — decisão arquitetural
@@ -319,7 +336,8 @@ versão instalada vive num único `.guildhall-lock.json` na raiz da Quest
 (não mais dentro de `guilds/`, já que o arquivo agora cobre mais do que
 guilds), com dois campos independentes — `guildhallVersion` para as
 Guilds e `agentTemplatesVersion` para os templates de agente — para que
-uma mudança de versão em um não force a atualização do outro.
+uma mudança de versão em um não force a atualização do outro. Validado
+em uso real na `calculator-quest` (seção 1).
 
 ---
 
@@ -340,9 +358,10 @@ uma mudança de versão em um não force a atualização do outro.
 
 ## 9. Aprendizados do MVP (validação do conceito)
 
-MVP executado: calculadora com histórico de sessão, do zero ao deploy na
-Vercel, usando Claude Code + 3 Guild minis (Architecture, Code Style,
-Security).
+MVP original (descontinuado): calculadora com histórico de sessão, do zero ao
+deploy na Vercel, usando Claude Code + 3 Guild minis (Architecture, Code Style,
+Security). Repositório e deploy excluídos após cumprir seu propósito — os
+aprendizados abaixo já estavam capturados antes da exclusão.
 
 **O que foi validado:**
 
