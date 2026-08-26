@@ -1,6 +1,6 @@
 {
   "name": "guildhall",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "AetherForge — guild standards distributed as an installable CLI",
   "bin": {
     "guildhall": "./bin/cli.js"

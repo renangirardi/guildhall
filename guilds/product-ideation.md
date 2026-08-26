@@ -161,6 +161,39 @@ can decide alone versus content it must ask the developer about first.
 > decision authority" is the backstop when the Product agent oversteps
 > into deciding something ambiguous instead of asking.
 
+### `type` as a default to confirm, not a decision made from scratch
+The rule above reads as if the Product agent infers `type` fresh from
+the idea every time it runs. It doesn't actually start from nothing: the
+guildhall CLI's `init` command already writes `questType` into
+`.guildhall-lock.json` at scaffold time, from the developer's `--type`
+flag, before the Product agent is even invoked at step 2 — structurally,
+since `init` needs that value up front to decide which conditional
+Guilds to copy in (master spec, section 7). Surfaced concretely by
+calculator-quest, step 2 (Herald), where the Product/Ideation Guild's
+own text still described `type` as decided from scratch, with no
+mention of the value `init` had already fixed one step earlier.
+- The Product agent treats an already-fixed `type` as a **default to
+  confirm** against the idea it's given, not a value to decide from
+  scratch. If the idea is consistent with the fixed `type`, the agent
+  proceeds — a value already existing is not, on its own, one of the
+  "asks the developer first" cases above.
+- If the idea conflicts with the fixed `type` (e.g. `.guildhall-lock.json`
+  says `cli`, but the idea describes something with user accounts and a
+  browser UI), the agent does not block step 2 and does not silently
+  overrule either value. It records the conflict — naming both the fixed
+  `type` and what the idea implies — in the Brief's "Open questions /
+  assumptions" section, and leaves it for the human Checkpoint at step 4
+  to resolve, the same place this Guild already routes every other
+  assumption the Product agent can't fully settle alone.
+- **Why not block outright**: blocking step 2 entirely over a `type`
+  mismatch would stop the flow earlier than every other ambiguity this
+  Guild handles, all of which reach the Checkpoint through the Brief
+  rather than a hard stop at step 2. A mismatched `type` is the same
+  shape of problem — worth surfacing, not worth halting ideation for.
+> Enforcement: agent-reviewed — same backstop as "Product agent
+> authority" above; the Checkpoint at step 4 is the resolution point for
+> a recorded conflict.
+
 ### When an idea is too vague to become a Brief yet
 If, after asking the clarifying question above, the developer's answer is
 still too thin to fill in Problem/Scope/Acceptance criteria with anything
@@ -258,3 +291,16 @@ reduces to a mechanical check.
 
 ## Proposal log
 See the master spec, section 6.
+
+## Changelog
+- **0.1.3** (2026-08-25) — Added "`type` as a default to confirm, not a
+  decision made from scratch" to "Product agent authority": the Product
+  agent treats a `type` already fixed in `.guildhall-lock.json` at `init`
+  as a default to confirm against the received idea, logging a conflict
+  in "Open questions / assumptions" for the step 4 Checkpoint instead of
+  blocking. Cross-referenced from the AI/Agents Guild's "Agent roles and
+  decision authority" (same commit — cross-guild synchronization).
+  Evidence: calculator-quest, step 2 (Herald). Tracked under the shared
+  `guilds/manifest.json` version — see the root `CHANGELOG.md` and the
+  README's "Adding or editing a guild" section for the versioning
+  convention.

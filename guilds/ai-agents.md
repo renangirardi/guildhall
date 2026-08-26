@@ -26,7 +26,11 @@ its step, are not.
 - **Product** (step 2, Product/Ideation Guild) — decides how to structure
   and phrase a Quest Brief from the idea given. Does not decide whether
   the Quest gets built at all — that's the human's call at ideation
-  (step 1) and confirmed again at the Checkpoint (step 4).
+  (step 1) and confirmed again at the Checkpoint (step 4). This includes
+  the `type` value already fixed in `.guildhall-lock.json` at `init`,
+  ahead of this step — see the Product/Ideation Guild's "`type` as a
+  default to confirm, not a decision made from scratch" for the full
+  rule.
 - **Architect** (step 3, Architecture + Data Guild) — decides structural
   choices within those Guilds' defaults, including whether the Quest
   needs a database. Does not decide to deviate from the Architecture
@@ -54,6 +58,46 @@ its step, are not.
 > Enforcement: agent-reviewed — this is a judgment boundary, not a
 > mechanical check; the Reviewer agent and the human Checkpoints are the
 > backstop when an agent oversteps it.
+
+### Standard agent output locations
+Cross-cutting, one level below "Agent roles and decision authority"
+above: not *what* an agent decides, but *where* its output lives once
+decided. Before this section existed, no Guild named a single answer for
+this — calculator-quest, step 3 (Loremaster) used `docs/architecture.md`
+by its own convention, with no Guild to point at for that choice. Rather
+than fixing that one step in isolation, this section is the single place
+every agent's output location is tracked, so the next gap of the same
+shape (a new agent, or a step whose output location hasn't been decided
+yet) has an obvious table row to add instead of another one-off Quest
+convention.
+
+| Agent (codename) | Role / step | Output location | Defined by |
+|---|---|---|---|
+| Herald | Product, step 2 | `docs/quest-brief.md` | Product/Ideation Guild, "Quest Brief format" |
+| Loremaster | Architect, step 3 | `docs/architecture.md` | This row — formalized here; evidence: calculator-quest, step 3 (Loremaster). See the Architecture Guild's Purpose for the cross-reference back to this section. |
+| Artificer | Builder, steps 5-6 | The Quest's own source tree (scaffold + feature code) — not a single file | Architecture Guild, "Folder structure" |
+| Sentinel | QA, step 7 | Test files co-located with the source they test (`*.test.ts` / `*.test.tsx`) | Testing/QA Guild, "File organization" |
+| Warden | Reviewer, step 8 | Not yet standardized — a real gap, not a conscious decision | — |
+| Quartermaster | Ops, steps 10-11 | Deploys are an action, not a written artifact. A post-incident write-up, when one is warranted, goes to `/docs/incidents/YYYY-MM-DD-short-title.md` | Documentation Guild, "Post-incident documentation" |
+| Scribe | Docs, step 12 | `README.md` at the Quest root, plus `/docs/adr/NNNN-short-title.md` for any ADR the step warrants | Documentation Guild, "README format" / "ADR format" |
+
+- A row with a "Defined by" Guild is not this Guild's rule to restate —
+  it's a pointer to where the actual requirement (format, required
+  sections, when the file is written) lives; this table only answers
+  *where*, never re-derives *what* goes in it.
+- A row marked "not yet standardized" is the same kind of honestly-
+  labeled gap this Guild's own "Out of scope" section already uses
+  elsewhere — worth a `guild-proposals.md` entry once a real Quest
+  surfaces a concrete need for it (per "Logging a `guild-proposals.md`
+  entry" below), not guessed at now.
+- Any other Guild that needs to reference where a given agent's output
+  lives points back to this table instead of restating the path —
+  exactly the pattern the Architecture Guild's "Persistence decisions"
+  section now follows for the Architect/Loremaster row.
+> Enforcement: agent-reviewed — a script could check that a Quest's
+> `docs/quest-brief.md` and `docs/architecture.md` exist by the relevant
+> step, but whether an agent chose the *right* location for output this
+> table doesn't yet cover is a judgment call until that row is filled in.
 
 ### When to apply `agent-recommended, human-confirmed`
 The tag already appears twice — the Ops/Infra Guild's rollback and the
@@ -120,6 +164,55 @@ same situation, would the same rule apply to all of them?*
   was already recognized as wanted.
 > Enforcement: agent-reviewed — applying the generalization test is a
 > judgment call by definition.
+
+### Logging a `process-gaps.md` entry
+"Logging a `guild-proposals.md` entry" above only covers the case where
+an agent affirmatively concludes something generalizes into a candidate
+Guild rule. It says nothing about the case one step short of that: an
+agent identifies something real, but concludes that acting on it, or
+logging it as a Guild proposal, is not its scope right now. That
+conclusion is itself a real decision — a Guild rule staying unwritten,
+or a real problem staying unfixed, is a choice being made, not an
+absence of one — and it must not live only as an implicit note in
+`.quest-progress.json` (or equivalent progress-tracking state). That
+file tracks *where the flow is*; nothing reads it looking for a
+scope-boundary decision like this one, so a finding recorded only there
+is effectively lost the moment the Quest moves past that step.
+- **When this applies**: any time an agent reaches "this is real, but
+  it's not my scope to act on or log as a Guild proposal right now" —
+  whether because the fix belongs to a step or agent that hasn't run
+  yet, because it falls outside every Guild's current authority
+  boundary, or because acting on it would itself need the
+  `agent-recommended, human-confirmed` gate this Guild already defines
+  and there's no way to see that through in the current turn.
+- **What to log**: an entry in `process-gaps.md` — distributed to every
+  new Quest by `guildhall init` the same way `guild-proposals.md` is
+  (see the master spec, section 7, and `bin/cli.js`) — in the format
+  that file's own header documents: what was observed, why it wasn't
+  escalated as a Guild proposal, a suggested next step if the agent has
+  one, and a status.
+- **Why a separate file, not a `guild-proposals.md` entry marked
+  "rejected"**: the two questions are genuinely different. A
+  `guild-proposals.md` entry asks "should this become a Guild rule?" —
+  a yes/no/defer decision, per "Logging a `guild-proposals.md` entry"
+  above. A `process-gaps.md` entry asks "should someone act on this at
+  all, and if so, how?" — the answer might turn out to be a Guild rule,
+  but just as easily a one-off fix, a maintenance Quest, or a formal
+  incident. Folding the second question into the first would force
+  every real-but-out-of-scope finding through a generalization test it
+  was never trying to pass.
+- **Not yet decided**: whether an entry needs a severity tag (e.g.
+  distinguishing an incident-shaped finding from a low-stakes note) is
+  explicitly left open, to be revisited once the mechanism has seen real
+  use — not guessed at now with no real entries to validate against, the
+  same discipline this Guild's own "Out of scope" sections already
+  apply elsewhere.
+> Enforcement: agent-reviewed — recognizing "this is real but not my
+> scope right now," like the generalization test above, is a judgment
+> call. `guildhall review-proposals` surfaces logged entries from every
+> known Quest's `process-gaps.md` for human review, in a section kept
+> separate from `guild-proposals.md` — accept/reject doesn't apply the
+> same way to a process gap as it does to a candidate rule.
 
 ### Cross-guild synchronization
 When a Guild rule closes a gap another Guild explicitly left open (an
@@ -241,3 +334,36 @@ how good the classification tooling gets.
 
 ## Proposal log
 See the master spec, section 6.
+
+## Changelog
+- **0.1.7** (2026-08-25) — Added "Logging a `process-gaps.md` entry": a
+  new mandatory rule requiring any agent that concludes "this is real,
+  but not my scope to act on or log as a Guild proposal right now" to
+  record that conclusion in `process-gaps.md`, rather than leaving it
+  implicit in `.quest-progress.json` (or equivalent progress-tracking
+  state). `process-gaps.md` is now scaffolded by `guildhall init` the
+  same way `guild-proposals.md` is, and `guildhall review-proposals`
+  surfaces both, in separate sections (`bin/cli.js`; guildhall/CLI's own
+  `package.json` version bumped alongside this Guild — see the root
+  `CHANGELOG.md`). No severity tag exists yet — left open on purpose,
+  per the same entry's "Not yet decided" note. Evidence:
+  calculator-quest, steps 8 (Warden) and 11 (Quartermaster).
+- **0.1.4** (2026-08-25) — Added "Standard agent output locations": a
+  cross-cutting table mapping each flow agent (Herald, Loremaster,
+  Artificer, Sentinel, Warden, Quartermaster, Scribe) to its expected
+  output location, filled in from what's already defined elsewhere (or
+  marked "not yet standardized" where nothing is). Formalizes
+  `docs/architecture.md` as the Loremaster's output location, replacing
+  the ad hoc convention calculator-quest used with no Guild to point at.
+  The Architecture Guild's Purpose now cross-references the Loremaster
+  row instead of leaving the location undefined (same commit — cross-
+  guild synchronization). Evidence: calculator-quest, step 3
+  (Loremaster).
+- **0.1.3** (2026-08-25) — Added a short cross-reference from the
+  Product agent's entry in "Agent roles and decision authority" to the
+  Product/Ideation Guild's new "`type` as a default to confirm, not a
+  decision made from scratch" rule, instead of duplicating that rule's
+  text here. Evidence: calculator-quest, step 2 (Herald). Tracked under
+  the shared `guilds/manifest.json` version — see the root
+  `CHANGELOG.md` and the README's "Adding or editing a guild" section for
+  the versioning convention.

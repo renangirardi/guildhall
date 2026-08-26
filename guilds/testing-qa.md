@@ -16,9 +16,26 @@ during code review (step 8), ahead of the pre-deploy Checkpoint (step 9).
 - For Quests with a UI layer, add `@testing-library/react` and
   `@testing-library/user-event` for component tests — no other component
   testing library is used unless the Quest Brief states a specific reason.
+- For web-app Quests, the generated `vitest.config.mts` must include the
+  `vite-tsconfig-paths` plugin so Vitest resolves the `@/*` path alias
+  already defined in `tsconfig.json` — never re-declare those paths by
+  hand inside `vitest.config.mts`; a hand-copied `paths` map silently
+  drifts from `tsconfig.json` the moment either one changes.
+- For web-app Quests, the generated `vitest.setup.ts` must import
+  `cleanup` from `@testing-library/react` and call it in an explicit
+  `afterEach(() => cleanup())` — without it, DOM nodes rendered by one
+  test leak into the next test in the same file.
+- **Why this is a rule now, not a suggestion:** both gaps surfaced as the
+  same failure in the same Quest — the scaffolded Vitest setup for a
+  web-app Quest didn't resolve `@/*` imports, breaking every component
+  test that imports through the alias on its very first run, and never
+  called `cleanup()` between tests, leaking DOM state across tests in the
+  same file. Evidence: calculator-quest, step 7 (Sentinel).
 > Enforcement: automated (custom) — a setup script checks `vitest` (and
 > `@testing-library/react` for web-app Quests) are present in
-> `package.json` after scaffold.
+> `package.json` after scaffold, and that `vitest.config.mts` includes
+> `vite-tsconfig-paths` and `vitest.setup.ts` calls `cleanup()` inside an
+> `afterEach` for web-app Quests.
 
 ### File organization
 - Test files are co-located with the source file they test, using the
@@ -148,3 +165,11 @@ test, not just detecting its existence — ever does.
 
 ## Proposal log
 See the master spec, section 6.
+
+## Changelog
+- **0.1.1** (2026-08-25) — Added the `vite-tsconfig-paths` plugin and the
+  explicit `afterEach(() => cleanup())` requirement to "Default
+  framework" for web-app Quests. Evidence: calculator-quest, step 7
+  (Sentinel). Tracked under the shared `guilds/manifest.json` version —
+  see the root `CHANGELOG.md` and the README's "Adding or editing a
+  guild" section for the versioning convention.

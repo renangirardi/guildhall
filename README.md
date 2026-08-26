@@ -37,8 +37,12 @@ Review proposals logged by agents across one or more Quests:
 guildhall review-proposals ./my-quest ./another-quest
 ```
 
-Promotion of a proposal into an actual guild file is always manual — this
-command only surfaces proposals for human review, per the master spec
+Prints each Quest's `guild-proposals.md` (candidate Guild rules) and
+`process-gaps.md` (real findings an agent judged out of its scope to act
+on or propose right now — see `guilds/ai-agents.md`, "Logging a
+`process-gaps.md` entry") in separate sections. Promotion of a proposal
+into an actual guild file is always manual — this command only surfaces
+proposals and process gaps for human review, per the master spec
 (section 6).
 
 ## Adding or editing a guild

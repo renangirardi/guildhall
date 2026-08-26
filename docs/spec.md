@@ -33,26 +33,33 @@ aventureiros para missões, não só um arquivo de regras.
 
 **Status atual:** o `guildhall` (repositório central do AetherForge) está
 construído e testado — comandos `init`, `update` e `review-proposals`
-funcionais. As 11 Guilds (8 core + 3 condicionais) estão completas, incluindo
-uma segunda passada de revisão nas 3 Guilds originais do MVP (Architecture,
-Security, Code Style), que nasceram como versões "mini" e foram elevadas ao
-mesmo padrão de rigor das demais. A orquestração de agentes também está
+funcionais, este último agora cobrindo tanto `guild-proposals.md` quanto o
+novo `process-gaps.md`, em seções separadas (seção 6). As 11 Guilds
+(8 core + 3 condicionais) estão completas, incluindo uma segunda passada de
+revisão nas 3 Guilds originais do MVP (Architecture, Security, Code Style),
+que nasceram como versões "mini" e foram elevadas ao mesmo padrão de rigor
+das demais, e uma rodada de correções pós-retrospectiva da
+`calculator-quest` (ver seção 9.1) que levou o `guildhallVersion`
+(`guilds/manifest.json`) a `0.1.7` e a versão do próprio CLI
+(`package.json`) a `0.2.0`. A orquestração de agentes também está
 implementada (sessão de 2026-08-24, quatro fases): os 7 subagentes temáticos,
 a skill orquestradora `/quest-flow` e a distribuição de ambos via
 `init`/`update` — ver seção 5.1 e seção 7.
 
 O MVP original (calculadora, repositório e deploy na Vercel) foi
 desativado — seus aprendizados já estavam capturados na seção 9 antes da
-exclusão. **A primeira Quest real com o sistema completo está em
-andamento**: `calculator-quest`, a mesma ideia da calculadora, agora
-passando pelo fluxo inteiro via `/quest-flow` (Herald → Loremaster →
-Checkpoint → Artificer → ...). Já passou pelo scaffold inicial e está em
-implementação; um problema de ambiente já surgiu e foi resolvido
-(hook `commit-msg` do Husky falhando no GitHub Desktop no Windows por
-não enxergar o PATH completo — contornado via commit pelo terminal ou
-`--no-verify`, com o CI como gate real de qualquer forma, já que a
-Ops/Infra Guild nunca tratou o hook local como a garantia de fato). Essa
-Quest ainda não chegou ao Checkpoint do passo 9.
+exclusão. **A primeira Quest real com o sistema completo**:
+`calculator-quest`, a mesma ideia da calculadora, completou o fluxo inteiro
+via `/quest-flow` (Herald → Loremaster → Checkpoint → Artificer → Sentinel
+→ Warden → Checkpoint → Quartermaster), incluindo deploy (passo 10) e
+monitoramento pós-deploy (passo 11). Um problema de ambiente surgiu durante
+a implementação e foi resolvido (hook `commit-msg` do Husky falhando no
+GitHub Desktop no Windows por não enxergar o PATH completo — contornado via
+commit pelo terminal ou `--no-verify`, com o CI como gate real de qualquer
+forma, já que a Ops/Infra Guild nunca tratou o hook local como a garantia
+de fato). Uma retrospectiva pós-Quest (2026-08-25) revisou os passos 2, 3,
+6, 7, 8, 10 e 11 e resultou em sete correções diretas às Guilds — ver
+seção 9.1.
 
 ---
 
@@ -65,6 +72,7 @@ Quest ainda não chegou ao Checkpoint do passo 9.
 | **Quest**       | Uma aplicação/projeto individual construído a partir dos padrões das Guilds (antes chamado de "Program").                                                     |
 | **Quest Brief** | O documento de requisitos de uma Quest (antes chamado de "PRD").                                                                                              |
 | **Chronicle**   | Registro de propostas de melhoria a uma Guild (`guild-proposals.md`), geradas durante o desenvolvimento de uma Quest, aguardando revisão humana.              |
+| **Process gaps** | Registro (`process-gaps.md`) de achados reais que um agente concluiu não serem seu escopo agir ou propor como regra de Guild agora — mesmo mecanismo de distribuição do Chronicle, mas revisado em separado, sem uma decisão de aceitar/rejeitar regra por trás. Ver seção 6. |
 | **Guildhall**   | O repositório central específico dentro do AetherForge, onde as Guilds e os templates de orquestração de agentes vivem, empacotado como CLI instalável.       |
 | **Checkpoint**  | Gate humano de revisão dentro do fluxo de desenvolvimento (passos 4 e 9).                                                                                     |
 
@@ -277,6 +285,25 @@ Implementação (sessão de 2026-08-24, quatro fases):
 sempre humana (evita degradar as Guilds com regras isoladas ou não testadas
 em múltiplos contextos).
 
+**`process-gaps.md` — o mecanismo irmão do Chronicle (desde 2026-08-25):**
+o Chronicle acima só captura quando um agente conclui *afirmativamente*
+que algo generaliza em regra de Guild. Ele nunca cobriu o caso de um
+agente identificar algo real, mas concluir que agir ou propor uma regra
+de Guild não é seu escopo agora — essa conclusão ficava só implícita
+(ou nem isso) em notas de `.quest-progress.json`. `process-gaps.md` fecha
+essa lacuna: mesmo mecanismo de distribuição do Chronicle (`init`
+escreve uma cópia vazia com cabeçalho/instruções; `update` não o
+sobrescreve, já que passa a ser um documento vivo por Quest), mas com um
+formato de entrada próprio (o que foi observado, por que não virou
+proposta de Guild, sugestão de próximo passo, status) e uma regra
+obrigatória na AI/Agents Guild ("Logging a `process-gaps.md` entry")
+exigindo que todo agente registre essa conclusão ali. `review-proposals`
+mostra os dois arquivos de cada Quest conhecida, em seções separadas —
+a natureza da decisão é diferente (não é aceitar/rejeitar uma regra de
+Guild). Ainda sem tag de severidade (incidente vs. nota simples) —
+deliberadamente em aberto até o mecanismo ter uso real (ver seção 9.1,
+item 7).
+
 **Nota:** existe também um `guild-proposals.md` na raiz do próprio
 guildhall, distinto do `guild-proposals.md` de cada Quest — acumula
 propostas sobre o mecanismo de guilds/CLI em si (não sobre uma Quest
@@ -339,6 +366,18 @@ Guilds e `agentTemplatesVersion` para os templates de agente — para que
 uma mudança de versão em um não force a atualização do outro. Validado
 em uso real na `calculator-quest` (seção 1).
 
+Desde 2026-08-25, `init` também escreve uma cópia vazia de
+`process-gaps.md` na raiz da Quest, ao lado de `guild-proposals.md`
+(mesmo tratamento: `update` não toca em nenhum dos dois, já que ambos
+viram documentos vivos por Quest assim que criados) — ver seção 6.
+`review-proposals` foi atualizado para imprimir os dois arquivos de cada
+Quest escaneada em seções separadas. Essa mudança também é a primeira a
+versionar o CLI em si, separadamente das Guilds e dos templates de
+agente: `package.json` (`version`) passou de `0.1.0` para `0.2.0`,
+enquanto `guildhallVersion` foi a `0.1.7` (a mudança tocou a AI/Agents
+Guild) e `agentTemplatesVersion` ficou parado, já que nenhum template de
+agente ou skill mudou nesta rodada.
+
 ---
 
 ## 8. Política de idioma
@@ -382,6 +421,90 @@ descrito na seção 6):**
 - Regras de Prettier não estavam explícitas no `code-style.md` (o agente usou
   defaults e documentou a decisão).
 - Dependência `eslint-config-prettier` não estava prevista em nenhuma Guild.
+
+### 9.1 Retrospectiva da calculator-quest (correções aplicadas às Guilds)
+
+A `calculator-quest` (seção 1) é a primeira Quest a completar o fluxo
+inteiro do sistema atual — Herald → Loremaster → Checkpoint → Artificer →
+Sentinel → Warden → Checkpoint → Quartermaster (deploy e monitoramento,
+passos 10-11) — usando a orquestração de agentes real (seção 5.1) e o
+`guildhall` já publicado como CLI (seção 7). Uma retrospectiva pós-Quest
+(2026-08-25) revisou os passos 2, 3, 6, 7, 8, 10 e 11 e identificou sete
+achados reais, cada um corrigido diretamente na(s) Guild(s)
+correspondente(s) no mesmo dia, seguindo a convenção de versionamento e
+changelog já estabelecida (seção 7):
+
+1. **Testing/QA Guild (`0.1.0` → `0.1.1`)** — o scaffold de Vitest gerado
+   não resolvia o alias de path `@/*` (faltava o plugin
+   `vite-tsconfig-paths`) nem chamava `cleanup()` entre testes
+   (`@testing-library/react`), quebrando todo teste de componente
+   importado via `@/` na primeira execução e vazando estado de DOM entre
+   testes no mesmo arquivo. Evidência: passo 7 (Sentinel).
+2. **UX/Frontend Guild (`0.1.1` → `0.1.2`)** — o token default `border`
+   mede ~1.7:1 de contraste contra `background`, abaixo do piso de 3:1
+   que a própria Guild exige para componentes de UI (WCAG 1.4.11).
+   Decisão: manter o valor e documentar a limitação em "Default token
+   values", já que uma Quest que dependa de `border` como limite visível
+   precisa verificar esse par de cores por conta própria. Evidência:
+   passo 6 (Artificer).
+3. **Product/Ideation + AI/Agents Guild (`0.1.2` → `0.1.3`)** — o `type`
+   de uma Quest já é fixado em `.guildhall-lock.json` no `init`, antes do
+   Herald sequer ser invocado, mas a Product/Ideation Guild descrevia o
+   `type` como decidido do zero a cada vez. Agora tratado como um
+   default a confirmar contra a ideia recebida: se bater, o Herald segue;
+   se não bater, registra o conflito em "Open questions / assumptions"
+   para o Checkpoint do passo 4 resolver, em vez de bloquear. Evidência:
+   passo 2 (Herald).
+4. **AI/Agents + Architecture Guild (`0.1.3` → `0.1.4`)** — nenhuma Guild
+   definia onde o output do Loremaster (design de arquitetura) deveria
+   ser salvo; a `calculator-quest` usou `docs/architecture.md` por
+   convenção própria, sem ponto de verdade central. A AI/Agents Guild
+   ganhou uma nova seção, "Standard agent output locations", mapeando o
+   output esperado de cada agente do fluxo (Herald, Loremaster,
+   Artificer, Sentinel, Warden, Quartermaster, Scribe) e formalizando
+   `docs/architecture.md` para o Loremaster; a Architecture Guild passou
+   a referenciar essa seção em vez de deixar o local implícito.
+   Evidência: passo 3 (Loremaster).
+5. **Ops/Infra Guild (`0.1.4` → `0.1.5`)** — o projeto Vercel foi
+   conectado ao repositório antes de código Next.js real existir em
+   `main`, fixando o Framework Preset em "Other" silenciosamente; nenhum
+   gate de CI detecta esse tipo de falha de configuração de plataforma
+   (lint/typecheck/testes passam normalmente, e o deploy falha só na
+   própria Vercel). Corrigido com um `vercel.json`
+   (`{"framework": "nextjs"}`) padrão no scaffold, e uma verificação
+   read-only (`vercel project inspect`) do Quartermaster na primeira
+   execução do passo 10 contra uma Quest com código real, para pegar
+   projetos que já tinham sido mal-detectados antes dessa correção
+   existir. Evidência: passo 10 (Quartermaster).
+6. **Monitoring Guild (`0.1.5` → `0.1.6`)** — a Guild já esperava Vercel
+   Web Analytics/Speed Insights como item `automated (custom)` do
+   scaffold, descrito como "um toggle", mas o scaffold real nunca
+   instalava `@vercel/analytics`/`@vercel/speed-insights` nem integrava
+   os componentes no layout — corrigido para descrever a instalação e
+   integração de código real feita pelo Artificer no scaffold (não uma
+   ação manual), com qualquer habilitação manual que a própria Vercel
+   eventualmente exija seguindo o mesmo padrão já usado para o
+   cadastro do monitor de uptime em "Alerts". Mudança de scaffold para
+   Quests futuras, não retroativa. Evidência: passo 11 (Quartermaster).
+7. **AI/Agents Guild + CLI (`0.1.6` → `0.1.7`; `package.json` `0.1.0` →
+   `0.2.0`)** — o mecanismo existente do Chronicle (`guild-proposals.md`)
+   só captura quando um agente conclui afirmativamente que algo
+   generaliza em regra de Guild; não cobria o caso de um agente concluir
+   que algo é real mas fora do seu escopo agir ou propor uma regra
+   agora — essa conclusão ficava só implícita em `.quest-progress.json`.
+   Criado `process-gaps.md` (mesmo mecanismo de distribuição do
+   `guild-proposals.md`, via `init`), com uma nova regra obrigatória na
+   AI/Agents Guild e uma nova seção separada em
+   `guildhall review-proposals` — ver seção 6. Sem tag de severidade
+   ainda: decisão explicitamente deixada em aberto até o mecanismo ter
+   uso real. Evidência: passos 8 (Warden) e 11 (Quartermaster).
+
+`guildhallVersion` atual (`guilds/manifest.json`): `0.1.7`. A versão do
+próprio CLI (`package.json`) está em `0.2.0`. `agentTemplatesVersion`
+(`templates/manifest.json`) não mudou nesta rodada — nenhuma das sete
+correções tocou um template de agente ou skill. Detalhe completo de cada
+mudança no changelog de cada Guild (seção final de cada arquivo em
+`guilds/`) e no `CHANGELOG.md` da raiz do guildhall.
 
 ---
 
@@ -444,6 +567,12 @@ virar proposta para o Chronicle (seção 6).
   Architecture, Code Style e outras só definem conteúdo para `web-app`/
   `api`. Só deve ser resolvido quando uma Quest desse tipo for realmente
   tentada, não especulado agora.
+- **Tag de severidade em `process-gaps.md`** — decisão adiada de
+  propósito (seção 6, seção 9.1 item 7): se/como distinguir um achado
+  no formato de incidente de uma nota de baixo risco dentro de uma
+  entrada de `process-gaps.md`. Revisitar depois que o mecanismo tiver
+  entradas reais o suficiente para saber se a distinção é necessária,
+  não especulado agora com zero entradas reais para validar contra.
 
 ---
 

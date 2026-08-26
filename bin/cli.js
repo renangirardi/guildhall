@@ -153,6 +153,37 @@ function cmdInit({ positional, flags }) {
     );
   }
 
+  // Scaffold the process-gaps log if it doesn't exist yet — same
+  // distribution pattern as guild-proposals.md above (written once at
+  // init, never overwritten by update once a Quest has its own entries).
+  // Distinct from guild-proposals.md: this file is for a real finding an
+  // agent judged out of its scope to act on or propose as a Guild rule
+  // right now, not a candidate rule itself — see guilds/ai-agents.md,
+  // "Logging a `process-gaps.md` entry."
+  const processGapsPath = path.join(targetDir, "process-gaps.md");
+  if (!fs.existsSync(processGapsPath)) {
+    fs.writeFileSync(
+      processGapsPath,
+      "# Process gaps\n\n" +
+        "Log a real finding an agent concluded was not its scope to act on\n" +
+        "or escalate as a guild-proposals.md entry right now. See\n" +
+        "guilds/ai-agents.md, \"Logging a `process-gaps.md` entry,\" for when\n" +
+        "to use this file instead of (or alongside) guild-proposals.md.\n\n" +
+        "No severity tag (e.g. incident vs. note) yet — left open until the\n" +
+        "mechanism has seen real use.\n\n" +
+        "Entry format:\n\n" +
+        "    ## Entry: <short title>\n" +
+        "    - **Logged by**: <agent, step>\n" +
+        "    - **What was observed**: <the finding>\n" +
+        "    - **Why it wasn't escalated as a Guild proposal**: <the agent's\n" +
+        "      reasoning for not logging this as a rule proposal>\n" +
+        "    - **Suggested next step**: <what the agent recommends, if it has\n" +
+        "      an opinion — fix now, spin off a maintenance Quest, escalate as\n" +
+        "      a formal incident, etc.>\n" +
+        "    - **Status**: logged, not yet reviewed.\n"
+    );
+  }
+
   console.log(`Initialized ${selected.length} guild(s) for quest type "${questType}" in ${outGuildsDir}`);
   selected.forEach((g) => console.log(`  - ${g.id} (${g.type})`));
   console.log(`Installed ${selectedAgents.length} agent(s) in ${outAgentsDir}`);
@@ -226,27 +257,55 @@ function cmdUpdate({ positional }) {
   fs.writeFileSync(lockPath, JSON.stringify(lock, null, 2));
 }
 
-function cmdReviewProposals({ positional }) {
-  // Scans one or more Quest directories (positional args) for guild-proposals.md
-  // and prints a consolidated view. Promotion into a guild file is manual —
-  // this command only surfaces proposals, it never writes to /guilds.
-  const targets = positional.length > 0 ? positional : ["."];
-  let found = 0;
-
+function scanEntryFile(targets, filename) {
+  // Shared scan for both guild-proposals.md and process-gaps.md: each
+  // Quest directory's file, split into "## "-delimited entries.
+  const results = [];
+  let total = 0;
   for (const dir of targets) {
-    const proposalsPath = path.join(path.resolve(dir), "guild-proposals.md");
-    if (!fs.existsSync(proposalsPath)) continue;
-    const content = fs.readFileSync(proposalsPath, "utf-8");
+    const filePath = path.join(path.resolve(dir), filename);
+    if (!fs.existsSync(filePath)) continue;
+    const content = fs.readFileSync(filePath, "utf-8");
     const entries = content.split(/^## /m).slice(1);
     if (entries.length === 0) continue;
+    results.push({ dir, entries });
+    total += entries.length;
+  }
+  return { results, total };
+}
 
-    console.log(`\n=== ${dir} (${entries.length} proposal(s)) ===`);
+function cmdReviewProposals({ positional }) {
+  // Scans one or more Quest directories (positional args) for
+  // guild-proposals.md and process-gaps.md, printing each in its own,
+  // clearly labeled section. The two are reviewed separately on purpose:
+  // a guild-proposals.md entry is a candidate Guild rule with an
+  // accept/reject/defer decision (master spec, section 6); a
+  // process-gaps.md entry is a real finding an agent judged out of its
+  // scope to act on or propose right now — there's no rule to accept or
+  // reject, only a decision on whether/how to follow up (see
+  // guilds/ai-agents.md, "Logging a `process-gaps.md` entry"). Neither
+  // this command nor `init`/`update` ever writes to /guilds — promotion
+  // into a guild file stays manual either way.
+  const targets = positional.length > 0 ? positional : ["."];
+
+  console.log("=== Guild proposals ===");
+  const proposals = scanEntryFile(targets, "guild-proposals.md");
+  for (const { dir, entries } of proposals.results) {
+    console.log(`\n${dir} (${entries.length} proposal(s)):`);
     entries.forEach((entry) => console.log(`## ${entry.trim()}\n`));
-    found += entries.length;
+  }
+  if (proposals.total === 0) {
+    console.log("No guild proposals found.");
   }
 
-  if (found === 0) {
-    console.log("No proposals found.");
+  console.log("\n=== Process gaps ===");
+  const gaps = scanEntryFile(targets, "process-gaps.md");
+  for (const { dir, entries } of gaps.results) {
+    console.log(`\n${dir} (${entries.length} process gap(s)):`);
+    entries.forEach((entry) => console.log(`## ${entry.trim()}\n`));
+  }
+  if (gaps.total === 0) {
+    console.log("No process gaps found.");
   }
 }
 
@@ -269,9 +328,12 @@ function main() {
           "guildhall — usage:",
           "  guildhall init [target-dir] [--type=web-app|api|cli|script]",
           "    installs Guild docs (guilds/) and the agent-orchestration",
-          "    templates (.claude/agents/, .claude/skills/, .claude/quest-manifest.json)",
+          "    templates (.claude/agents/, .claude/skills/, .claude/quest-manifest.json),",
+          "    and scaffolds guild-proposals.md and process-gaps.md",
           "  guildhall update [target-dir]",
           "  guildhall review-proposals [quest-dir...]",
+          "    prints guild-proposals.md and process-gaps.md from each Quest,",
+          "    in separate sections",
         ].join("\n")
       );
       process.exit(command ? 1 : 0);

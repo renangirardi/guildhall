@@ -120,6 +120,19 @@ requires copying them by hand.
     the first real evidence for this specific role, the same way any
     other gap in this project waits for a real instance before it's
     trusted as more than a placeholder.
+  - **Known gap: `border` (`#3f3f46`) against `background` (`#18181b`)
+    measures roughly 1.7:1 contrast — below the 3:1 non-text contrast
+    floor "Accessibility baseline (WCAG AA)" requires for UI components
+    (WCAG 1.4.11) below.** Kept as shipped rather than changed, because
+    the source app's real usage never relies on this pair alone to mark a
+    component boundary (it pairs `border` with elevation/spacing cues,
+    not contrast) — but that means the token itself carries no such
+    guarantee out of the box. A Quest that depends on a visible border as
+    a component's boundary (e.g. an input's resting-state outline, a card
+    edge on a busy background) must check the `border`/`background` pair
+    against the 3:1 floor independently and adjust locally; do not assume
+    this default clears "Accessibility baseline" just because it ships as
+    a default.
 - **`spacing`** (px): `{ xs: 4, sm: 8, md: 16, lg: 24, xl: 32, "2xl": 48 }`
   — the source app's own spacing values (margin, padding, gap) fall
   cleanly on this scale in every component read; nothing in between was
@@ -335,3 +348,13 @@ limitation.
 
 ## Proposal log
 See the master spec, section 6.
+
+## Changelog
+- **0.1.2** (2026-08-25) — Documented that the default `border` token
+  (`#3f3f46`) does not clear the 3:1 non-text contrast floor
+  "Accessibility baseline (WCAG AA)" requires against `background`
+  (`#18181b`) — flagged in "Default token values" rather than changing
+  the shipped value. Evidence: calculator-quest, step 6 (Artificer).
+  Tracked under the shared `guilds/manifest.json` version — see the root
+  `CHANGELOG.md` and the README's "Adding or editing a guild" section for
+  the versioning convention.

@@ -21,7 +21,10 @@ TypeScript. This Guild also closes the Ops/Infra Guild's "Type check"
 pipeline step (previously an open gap in that Guild) — see "Type checking"
 below. Consulted by the Architect agent during architecture design
 (development flow step 3, alongside the Data Guild) and by any agent facing
-a scaffold or structural decision throughout the flow.
+a scaffold or structural decision throughout the flow. Where the
+Architect's own design output is saved is not this Guild's rule to
+define — see the AI/Agents Guild's "Standard agent output locations"
+(Loremaster row) for that.
 
 ## Rules
 
@@ -183,3 +186,12 @@ could be scripted well before that judgment ever automates.
 Proposals affecting this Guild are tracked per-Quest in `guild-proposals.md`
 and reviewed via the `review-proposals` CLI command. See the master spec,
 section 6.
+
+## Changelog
+- **0.1.4** (2026-08-25) — Purpose now cross-references the AI/Agents
+  Guild's new "Standard agent output locations" (Loremaster row) for
+  where the Architect's design output is saved, instead of leaving the
+  location undefined. Evidence: calculator-quest, step 3 (Loremaster).
+  Tracked under the shared `guilds/manifest.json` version — see the root
+  `CHANGELOG.md` and the README's "Adding or editing a guild" section for
+  the versioning convention.

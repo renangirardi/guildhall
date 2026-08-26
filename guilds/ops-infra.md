@@ -80,7 +80,9 @@ step 5) and by the Ops agent at deploy time (step 10).
 - Vercel is the standard deploy platform for web-app and api Quests
   (validated in the MVP), connected directly to the Quest's GitHub repo.
 - Required configuration per Quest, done at scaffold time:
-  - Framework preset set to Next.js (auto-detected in the default stack).
+  - Framework preset pinned explicitly via a committed `vercel.json` —
+    see "Framework Preset: vercel.json and step-10 verification" below
+    for why this isn't left to Vercel's auto-detection.
   - Production environment variables entered in the Vercel project
     dashboard (see "Environment variables and secrets in production").
   - Build command and output directory left at Next.js defaults unless
@@ -88,6 +90,48 @@ step 5) and by the Ops agent at deploy time (step 10).
 > Enforcement: automated (custom) — a scaffold-time script checks the
 > Vercel project exists and is linked to the repo; the environment
 > variable content itself is agent-reviewed.
+
+### Framework Preset: vercel.json and step-10 verification
+Vercel auto-detects a project's Framework Preset from whatever code sits
+on `main` at the moment the Vercel project is first connected to the
+repo. If that connection happens before any real Next.js code exists —
+a Vercel project linked ahead of the Quest's first real commit, against
+an empty or pre-scaffold `main` — it auto-detects "no framework" and
+pins the preset to `Other`. That state does not self-correct once real
+code lands, and nothing in "CI/CD pipeline" or "What blocks a deploy"
+below is positioned to catch it: lint, type-check, tests, and
+`next build` all still pass, since none of them talk to Vercel's
+platform configuration. The project builds green through every CI job
+and still fails at Vercel's own deploy step, with "No Output Directory
+named 'public' found" — a platform-configuration failure, not a
+code-quality one. Evidence: calculator-quest, step 10 (Quartermaster).
+- **Fix, going forward** — the scaffold (development flow steps 5-6)
+  includes a committed `vercel.json` at the Quest root with
+  `{"framework": "nextjs"}` by default. This makes the Framework Preset
+  explicit in version control instead of inferred from auto-detection
+  timing, so it no longer matters whether the Vercel project was
+  connected before or after real application code exists.
+  > Enforcement: automated (custom) — a scaffold-time script checks
+  > `vercel.json` exists with `"framework": "nextjs"` at the Quest root.
+- **Check, for what the fix above can't retroactively cover** —
+  `vercel.json` only protects a Quest scaffolded after this rule
+  existed; it does nothing for a Vercel project that was already
+  connected and mis-detected earlier, or one where the preset was
+  changed by hand in the dashboard after connection. The Ops agent
+  (Quartermaster) closes that gap: the first time development flow
+  step 10 runs against a Quest that already has real application code in
+  `main` — not merely that the Vercel project exists and is linked,
+  which "Deploy platform"'s enforcement above already checks —
+  Quartermaster runs `vercel project inspect <name>` (read-only; it does
+  not modify the project) and confirms the reported Framework Preset is
+  `Next.js`. A mismatch is reported to the developer before the deploy
+  proceeds, instead of surfacing only when the deploy itself fails. This
+  is a one-time check per Quest, not something to repeat on every later
+  step-10 run — once confirmed (or corrected), `vercel.json` keeps it
+  pinned for every deploy after.
+  > Enforcement: agent-reviewed — a read-only inspection an agent
+  > performs and reports on, not a CI script; Vercel exposes no
+  > pre-deploy hook for this today.
 
 ### Environment variables and secrets in production
 - The Security Guild bans committing any `.env*` file. In production,
@@ -242,3 +286,17 @@ current tooling limitation.
 
 ## Proposal log
 See the master spec, section 6.
+
+## Changelog
+- **0.1.5** (2026-08-25) — Added "Framework Preset: vercel.json and
+  step-10 verification": the scaffold now includes a committed
+  `vercel.json` (`{"framework": "nextjs"}`) by default so the Framework
+  Preset no longer depends on Vercel's auto-detection timing relative to
+  when real Next.js code lands in `main`, and the Ops agent
+  (Quartermaster) now runs a read-only `vercel project inspect <name>`
+  the first time step 10 runs against a Quest with real application
+  code already present, to catch a project mis-detected before this fix
+  existed. Evidence: calculator-quest, step 10 (Quartermaster). Tracked
+  under the shared `guilds/manifest.json` version — see the root
+  `CHANGELOG.md` and the README's "Adding or editing a guild" section for
+  the versioning convention.

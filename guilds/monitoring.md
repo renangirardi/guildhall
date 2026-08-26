@@ -40,14 +40,34 @@ Consulted by the Ops agent post-deploy (development flow step 11).
 - At this stage, use what Vercel already provides for free rather than
   adding an external tool: Vercel's Runtime Logs and per-function
   invocation/error/duration metrics (dashboard, no setup) plus Vercel Web
-  Analytics / Speed Insights (opt-in, free tier, one toggle at scaffold
-  time) for response time and traffic.
+  Analytics and Speed Insights for response time and traffic.
+- **Scaffold-time integration, not a dashboard toggle.** The scaffold
+  (development flow steps 5-6) installs `@vercel/analytics` and
+  `@vercel/speed-insights` as dependencies and adds `<Analytics />`
+  (from `@vercel/analytics/next`) and `<SpeedInsights />` (from
+  `@vercel/speed-insights/next`) to the root layout. This is code the
+  Builder agent (Artificer) writes as part of the scaffold, the same way
+  it writes the health route below — not a manual step the developer
+  performs later. This Guild previously described the item as "one
+  toggle at scaffold time," but the actual scaffold never installed the
+  packages or wrote the components, so the toggle alone had no data to
+  show. Evidence: calculator-quest, step 11 (Quartermaster).
+- If Vercel itself ever requires a one-time manual enablement in the
+  project dashboard before this data appears, that follows the same
+  pattern this Guild's own "Alerts" rule already uses for the uptime
+  monitor signup below: a manual, one-time action outside what an agent
+  can perform, stated plainly to the developer as part of finishing the
+  scaffold rather than left silently undone.
 - An external APM tool (Sentry, Datadog, etc.) is not a default — only
   add one if the Quest Brief states a specific reliability requirement
   that the Vercel-native metrics don't cover.
-> Enforcement: automated (custom) — a scaffold script enables Vercel
-> Analytics on the project; agent-reviewed for whether a given Quest
-> needs more than that.
+> Enforcement: automated (custom) — a scaffold-time script checks
+> `@vercel/analytics` and `@vercel/speed-insights` are present in
+> `package.json` and that the root layout imports and renders both
+> components, the same check style as the healthcheck route below;
+> agent-reviewed for whether a given Quest needs more than that, and for
+> whether any Vercel-side manual enablement was actually necessary and
+> reported.
 
 ### Healthcheck
 - Every Quest with a deploy target exposes a `/api/health` route
@@ -159,3 +179,18 @@ tooling to automate it is missing.
 
 ## Proposal log
 See the master spec, section 6.
+
+## Changelog
+- **0.1.6** (2026-08-25) — "Metrics" now specifies that the scaffold
+  (steps 5-6, Artificer) installs `@vercel/analytics` and
+  `@vercel/speed-insights` and renders `<Analytics />`/`<SpeedInsights />`
+  in the root layout, replacing the previous "one toggle at scaffold
+  time" description that had no actual package install or code
+  integration behind it, and clarifying that any Vercel-side manual
+  dashboard enablement is a one-time developer action Artificer reports
+  plainly, not something it performs itself. Evidence: calculator-quest,
+  step 11 (Quartermaster). This is a scaffold-default change for future
+  Quests only — not applied retroactively to any existing Quest. Tracked
+  under the shared `guilds/manifest.json` version — see the root
+  `CHANGELOG.md` and the README's "Adding or editing a guild" section for
+  the versioning convention.
