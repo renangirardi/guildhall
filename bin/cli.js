@@ -94,11 +94,17 @@ function cmdInit({ positional, flags }) {
   // filtered by appliesTo the same way guilds are — quartermaster is the
   // one currently narrowed to web-app/api, so a cli/script Quest simply
   // never receives quartermaster.md rather than relying only on its own
-  // internal "not applicable" check. The quest-flow skill is copied
-  // unconditionally: it's the orchestrator itself, not a per-type Guild
-  // consumer, so every Quest type needs it. The agent manifest is copied
-  // in full (not filtered) so the skill can read appliesTo at runtime,
-  // e.g. to decide whether to invoke quartermaster at all.
+  // internal "not applicable" check. The three Quest-phase skills
+  // (quest-embark, quest-forge, quest-ship — replacing the retired
+  // quest-flow, AI/Agents Guild's "Orchestration model") are copied
+  // unconditionally, whole directories at a time, via copyDirRecursive
+  // below: they're the orchestrators themselves, not a per-type Guild
+  // consumer, so every Quest type needs all three, and nothing here
+  // hardcodes their names — this loop and copyDirRecursive just copy
+  // whatever directories currently exist under templates/claude/skills/.
+  // The agent manifest is copied in full (not filtered) so a skill can
+  // read appliesTo at runtime, e.g. to decide whether to invoke
+  // quartermaster at all.
   const agentManifest = loadAgentManifest();
   const selectedAgents = selectAgents(agentManifest, questType);
   const outClaudeDir = path.join(targetDir, ".claude");
@@ -181,6 +187,55 @@ function cmdInit({ positional, flags }) {
         "      an opinion — fix now, spin off a maintenance Quest, escalate as\n" +
         "      a formal incident, etc.>\n" +
         "    - **Status**: logged, not yet reviewed.\n"
+    );
+  }
+
+  // Scaffold the feature backlog and the Feature Brief directory —
+  // same distribution pattern as guild-proposals.md and process-gaps.md
+  // above (written once at init, never overwritten by update once a
+  // Quest has its own content): docs/feature-backlog.md and
+  // docs/features/ become living Quest documents the moment
+  // /quest-embark's Herald (Vision Mode) and /quest-forge's Herald
+  // (Feature Brief Mode) start writing to them — see the Product/
+  // Ideation Guild, "Feature backlog format" and "Feature Brief format".
+  const docsDir = path.join(targetDir, "docs");
+  const featuresDir = path.join(docsDir, "features");
+  fs.mkdirSync(featuresDir, { recursive: true });
+
+  const featureBacklogPath = path.join(docsDir, "feature-backlog.md");
+  if (!fs.existsSync(featureBacklogPath)) {
+    fs.writeFileSync(
+      featureBacklogPath,
+      "# Feature backlog\n\n" +
+        "Candidate features for this Quest, in loose one-to-two-sentence\n" +
+        "form — not full specifications. Written by Herald in Vision Mode\n" +
+        "during `/quest-embark`, and added to by Herald in Feature Brief\n" +
+        "Mode whenever `/quest-forge <feature>` forges a feature that\n" +
+        "wasn't already listed here. See the Product/Ideation Guild,\n" +
+        "\"Feature backlog format,\" for the full rule this file follows.\n\n" +
+        "Each entry: one to two sentences, tagged with a status.\n\n" +
+        "- **Status values**: `planned` (not yet forged) | `in-progress`\n" +
+        "  (a `/quest-forge` invocation is under way) | `done`\n" +
+        "  (implemented, tested, and reviewed).\n\n" +
+        "## Entries\n\n" +
+        "(none yet — populated by `/quest-embark`)\n"
+    );
+  }
+
+  const featuresReadmePath = path.join(featuresDir, "README.md");
+  if (!fs.existsSync(featuresReadmePath)) {
+    fs.writeFileSync(
+      featuresReadmePath,
+      "# Feature Briefs\n\n" +
+        "One file per forged feature, `<slug>.md`, written the first time\n" +
+        "that feature's `/quest-forge <feature>` invocation runs — never\n" +
+        "before. See the Product/Ideation Guild, \"Feature Brief format,\"\n" +
+        "for the required sections (Title, Context, Scope, Out of scope,\n" +
+        "Acceptance criteria, Edge cases, Open questions / assumptions),\n" +
+        "and `docs/feature-backlog.md` for the loose, pre-detail list of\n" +
+        "candidate features this directory expands on one at a time.\n\n" +
+        "This directory has no Feature Briefs yet — nothing here until the\n" +
+        "first `/quest-forge` invocation.\n"
     );
   }
 
@@ -328,8 +383,10 @@ function main() {
           "guildhall — usage:",
           "  guildhall init [target-dir] [--type=web-app|api|cli|script]",
           "    installs Guild docs (guilds/) and the agent-orchestration",
-          "    templates (.claude/agents/, .claude/skills/, .claude/quest-manifest.json),",
-          "    and scaffolds guild-proposals.md and process-gaps.md",
+          "    templates (.claude/agents/, .claude/skills/ — quest-embark,",
+          "    quest-forge, quest-ship — .claude/quest-manifest.json), and",
+          "    scaffolds guild-proposals.md, process-gaps.md,",
+          "    docs/feature-backlog.md, and docs/features/",
           "  guildhall update [target-dir]",
           "  guildhall review-proposals [quest-dir...]",
           "    prints guild-proposals.md and process-gaps.md from each Quest,",

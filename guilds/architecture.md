@@ -19,14 +19,71 @@ as pure logic; the Data Guild's generated Prisma client keeps `/lib` code
 type-safe against the schema specifically because this Guild requires
 TypeScript. This Guild also closes the Ops/Infra Guild's "Type check"
 pipeline step (previously an open gap in that Guild) — see "Type checking"
-below. Consulted by the Architect agent during architecture design
-(development flow step 3, alongside the Data Guild) and by any agent facing
-a scaffold or structural decision throughout the flow. Where the
-Architect's own design output is saved is not this Guild's rule to
-define — see the AI/Agents Guild's "Standard agent output locations"
+below. Consulted by Loremaster during architecture design — part of
+`/quest-embark`, alongside the Data Guild (AI/Agents Guild,
+"Orchestration model — three Quest-phase skills") — and by any agent
+facing a scaffold or structural decision throughout a Quest's lifetime.
+Where the Architect's own design output is saved is not this Guild's rule
+to define — see the AI/Agents Guild's "Standard agent output locations"
 (Loremaster row) for that.
 
 ## Rules
+
+### Extensibility over premature optimization at `/quest-embark`
+Architecture is designed once per Quest, by Loremaster, inside
+`/quest-embark` — before any feature has a Feature Brief (AI/Agents
+Guild, "Orchestration model — three Quest-phase skills"). At that point,
+only the loose, one-to-two-sentence entries in `docs/feature-backlog.md`
+exist (Product/Ideation Guild, "Feature backlog format"); the detailed
+scope, acceptance criteria, and edge cases for any given feature aren't
+written until that feature's own `/quest-forge <feature>` invocation,
+which may happen long after `/quest-embark` and in whatever order the
+developer chooses, not an order the backlog itself fixes. Architecture
+decided as if the backlog were already fully specified is architecture
+decided on information that doesn't exist yet.
+- **Favor extensibility over optimizing for the features already known
+  in detail.** At `/quest-embark` time, that's usually none of them — the
+  backlog is intentionally shallow. A structural choice that's
+  technically cleaner for one specific, well-understood feature but
+  closes off directions the backlog otherwise gestures at is the wrong
+  trade at this stage.
+- **Data models should not assume a closed set of use cases.** Prefer
+  shapes that can absorb a new backlog entry as a new table, relation, or
+  field rather than a redesign — e.g. a more generic entity with a
+  `type` discriminator over a hand-tailored table per anticipated
+  feature, when the backlog names several loosely related feature ideas
+  that plausibly share a shape. This does not override the Data Guild's
+  own modeling conventions — it's a bias to apply within them.
+- **Avoid rigid couplings that only make sense for the first feature
+  actually implemented.** The first `/quest-forge` invocation after
+  `/quest-embark` will inevitably be the one the architecture gets tested
+  against first; that doesn't make it the architecture's only intended
+  consumer. A module boundary, a fixed enum, or an API shape that
+  hard-codes assumptions true only of that first feature is exactly the
+  premature optimization this rule warns against.
+- **Flag it in `docs/architecture.md` when a decision might need
+  revisiting.** When Loremaster makes a call it isn't fully confident
+  will hold once a specific backlog entry is detailed, it says so
+  explicitly in the document itself — not only in conversation — naming
+  which decision, and, where identifiable, which backlog entry could be
+  the one that forces a revisit. A later `/quest-forge` invocation that
+  hits exactly that flagged tension has a documented reason to route the
+  conflict back through the same channel this Guild already uses for any
+  other architecture deviation (see "Default stack" below), instead of
+  silently working around it or silently overriding the original design.
+- **This is a bias, not a mandate to over-engineer.** Extensibility for a
+  backlog that's still just one-to-two-sentence entries is about leaving
+  reasonable room, not designing a maximally generic system against every
+  conceivable future feature — that would be its own premature-
+  optimization mistake, just aimed at flexibility instead of performance.
+  Loremaster still exercises judgment about how far "reasonable room"
+  extends for a given backlog.
+> Enforcement: agent-reviewed — whether a given decision actually favored
+> extensibility, versus over-fit a specific feature or over-engineered
+> for a hypothetical one, is a judgment call; `/quest-embark`'s human
+> Checkpoint (AI/Agents Guild) is the backstop, and a flagged decision
+> that turns out wrong at a later `/quest-forge` is a `guild-proposals.md`
+> candidate if the same shape would recur across Quests.
 
 ### Default stack
 - Next.js (App Router) + TypeScript is the standard for web-app Quests —
@@ -42,9 +99,9 @@ define — see the AI/Agents Guild's "Standard agent output locations"
   pattern the Data Guild uses for its own database choice. Choosing a
   different stack is a deviation from this Guild's default, which the
   AI/Agents Guild's Architect authority rule requires flagging explicitly
-  at the Checkpoint (step 4) rather than deciding unilaterally — see that
-  Guild for the Architect's decision authority itself; it isn't redefined
-  here.
+  at `/quest-embark`'s Checkpoint rather than deciding unilaterally — see
+  that Guild for the Architect's decision authority itself; it isn't
+  redefined here.
 > Enforcement: agent-reviewed — whether a stated deviation is actually
 > justified is a judgment call.
 
@@ -106,8 +163,8 @@ unclaimed.
   at compile time instead of just a convention agents are trusted to
   follow. Ownership follows the guarantee it backs.
 - The check itself (`tsc --noEmit`) executes as its own CI job — that
-  remains the Ops/Infra Guild's pipeline to define (step 6, run order,
-  what blocks a deploy); this Guild owns only the rule that types must be
+  remains the Ops/Infra Guild's pipeline to define (run order, what
+  blocks a deploy); this Guild owns only the rule that types must be
   checked and how strictly.
 > Enforcement: automated — `tsc --noEmit` as a CI job (Ops/Infra Guild's
 > pipeline), failing the build on any type error. `strict: true` presence
@@ -115,14 +172,17 @@ unclaimed.
 
 ### Persistence decisions
 Whether a Quest needs a database at all is decided during architecture
-design (development flow step 3) by the Architect agent, consulting this
-Guild together with the Data Guild — not by this Guild alone, and not
+design, inside `/quest-embark`, by Loremaster, consulting this Guild
+together with the Data Guild — not by this Guild alone, and not
 automatically for every Quest. This Guild does not restate the Data
 Guild's own standards (database choice, ORM, migrations, modeling
 conventions) — see that Guild for those. The Architect's decision
 authority itself — what it can decide unilaterally versus what needs to
 be flagged at the Checkpoint — is defined by the AI/Agents Guild and is
-not redefined here.
+not redefined here. Because this decision is made before any feature has
+a Feature Brief, it's exactly the kind of call "Extensibility over
+premature optimization at `/quest-embark`" above governs — see that rule
+for what favoring extensibility means concretely for data-model choices.
 > Enforcement: agent-reviewed — see the AI/Agents Guild's "Agent roles
 > and decision authority" for the Architect's authority boundary.
 
@@ -188,6 +248,23 @@ and reviewed via the `review-proposals` CLI command. See the master spec,
 section 6.
 
 ## Changelog
+- **0.1.10** (2026-08-26) — Added "Extensibility over premature
+  optimization at `/quest-embark`": architecture is now designed once,
+  before any feature has a Feature Brief (AI/Agents Guild's
+  three-phase orchestration model — `/quest-embark`, `/quest-forge
+  <feature>`, `/quest-ship`), so decisions must favor extensibility
+  over optimizing for the handful of features already known in detail
+  at that point. Concretely: data models should not assume a closed
+  set of use cases, rigid couplings that only suit the first
+  implemented feature should be avoided, and Loremaster must flag in
+  `docs/architecture.md` itself when an early decision may need
+  revisiting once a specific backlog entry is detailed later. Also
+  replaced stale references to the retired step-numbered flow
+  ("development flow step 3," "the Checkpoint (step 4)") in Purpose,
+  "Default stack," "Type checking," and "Persistence decisions" with
+  the corresponding skill names, and cross-linked "Persistence
+  decisions" to the new rule. Evidence: process change following
+  calculator-quest retrospective, 2026-08-25.
 - **0.1.4** (2026-08-25) — Purpose now cross-references the AI/Agents
   Guild's new "Standard agent output locations" (Loremaster row) for
   where the Architect's design output is saved, instead of leaving the

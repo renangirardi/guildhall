@@ -15,10 +15,12 @@ how an incident gets written up after the fact, and when code needs a
 comment versus when the code should simply read clearly on its own. This
 Guild also closes the Monitoring Guild's "Post-incident documentation
 format" item (Out of scope), which named this Guild as the eventual
-owner. Consulted by the Docs agent at the final step of the development
-flow (spec section 5, step 12), and by any agent — most often Ops — that
-needs to write an ADR or an incident doc at the point the underlying
-decision or incident actually happens, rather than waiting for step 12.
+owner. Consulted by Scribe on every `/quest-ship` run — repeatable and
+on-demand, not a single final step (AI/Agents Guild, "Orchestration
+model — three Quest-phase skills") — and by any agent, most often Ops,
+that needs to write an ADR or an incident doc at the point the underlying
+decision or incident actually happens, rather than waiting for the next
+`/quest-ship` run.
 
 ## Rules
 
@@ -61,16 +63,58 @@ line):
 > content under each heading is actually accurate and useful is
 > agent-reviewed.
 
+### Incremental updates — Scribe's cadence at `/quest-ship`
+The section above defines what the README (and the other documents this
+Guild governs) must *contain*. This rule defines *when* and *how* Scribe
+touches them, which is no longer "once, at the end" — `/quest-ship` is
+repeatable and on-demand (AI/Agents Guild, "Orchestration model — three
+Quest-phase skills"), so Scribe's documentation pass runs that many times
+over a single Quest's life, not once.
+- **Scope each pass to that deploy's features, not the whole Quest.** On
+  every `/quest-ship` run, Scribe reads that run's own
+  `.quest-progress.json` `deploys` entry — specifically its
+  `featuresIncluded` field (AI/Agents Guild, "`.quest-progress.json` —
+  schema for the three-phase model") — and reviews the README and other
+  governed docs strictly in light of *those* features. A feature already
+  covered by a prior `/quest-ship` run's update is not re-examined just
+  because this run also happens to touch a related area; a feature not in
+  this run's `featuresIncluded` is out of scope for this pass entirely,
+  even if it's sitting `done` in the backlog waiting for a future deploy.
+- **Update in place, don't rewrite from scratch.** Each pass is a diff
+  against the README's current state — add or amend only what changed as
+  a result of the features this deploy actually included (a new script in
+  "Available scripts," a newly relevant "Deployment" section on a Quest's
+  first-ever `/quest-ship`, and so on). Sections untouched by this
+  deploy's features are left exactly as the previous pass left them,
+  never regenerated wholesale.
+- **Never write as if this is the last `/quest-ship` the Quest will see.**
+  The README always describes the Quest as of the most recent deploy —
+  "true as of now," not "final" — since further `/quest-ship` runs, each
+  covering more of the backlog, are the expected norm, not an edge case.
+- **This does not change "README format" above.** The required sections,
+  their order, and what each one must contain are unchanged; only the
+  cadence and the scope of any single update to them are.
+> Enforcement: agent-reviewed — whether a given pass actually stayed
+> scoped to that deploy's `featuresIncluded`, versus drifting into an
+> unrelated full rewrite or missing a section a shipped feature actually
+> changed, is a judgment call for whichever human reviews that
+> `/quest-ship` run's Checkpoint (AI/Agents Guild).
+
 ### ADR format — when a decision earns one
 An Architecture Decision Record captures a decision made *during*
-implementation (development flow steps 5-8) that a future reader of the
-code could not reconstruct just by reading the Quest Brief or the diff.
-Not every implementation decision qualifies — most don't.
+implementation — `/quest-embark`'s scaffold, or any `/quest-forge
+<feature>` invocation's implementation and review (AI/Agents Guild,
+"Orchestration model — three Quest-phase skills") — that a future reader
+of the code could not reconstruct just by reading the Quest Brief, the
+relevant Feature Brief, or the diff. Not every implementation decision
+qualifies — most don't.
 
 Use this test, in order:
-1. **Does it describe what to build, decided at or before the Checkpoint
-   in step 4?** → It already belongs in the Quest Brief. Do not duplicate
-   it as an ADR.
+1. **Does it describe what to build, already decided in the Quest Brief
+   (approved at `/quest-embark`'s Checkpoint) or in the relevant Feature
+   Brief (written by that feature's `/quest-forge` invocation)?** → It
+   already belongs in one of those documents. Do not duplicate it as an
+   ADR.
 2. **Is it a deviation from a Guild default** — the Architect choosing a
    different stack, database, or structural pattern than the Architecture
    or Data Guild's default — **that was flagged and confirmed at a
@@ -147,10 +191,11 @@ process to have an incident in.
   it's part of that Quest's production history and stays with it even if
   the Quest is later archived.
 - **Who writes it, and when** — the Ops agent, immediately after the
-  incident resolves, using this Guild's format. It is not deferred to the
-  Docs agent's step-12 pass: an incident can happen at any point after
-  deploy (development flow step 11), not only right before step 12 runs,
-  and the diagnosis is freshest immediately after resolution.
+  incident resolves, using this Guild's format. It is not deferred to
+  Scribe's next `/quest-ship` documentation pass (see "Incremental
+  updates" above): an incident can happen at any point after a deploy,
+  not only right before the next `/quest-ship` run happens, and the
+  diagnosis is freshest immediately after resolution.
 > Enforcement: agent-reviewed — both whether an incident clears the
 > trigger and whether the write-up is complete enough are judgment calls.
 
@@ -175,9 +220,10 @@ comment is required at all:
 - The Code Style Guild's language policy applies without exception:
   every comment and doc-comment is in English, same as code and commit
   messages (master spec, section 8).
-> Enforcement: agent-reviewed — the Reviewer agent's existing checklist
-> (Code Style Guild, step 8) is extended to flag both a missing comment
-> where the WHY is genuinely non-obvious, and a comment that only
+> Enforcement: agent-reviewed — Warden's existing checklist (Code Style
+> Guild), applied inside every `/quest-forge <feature>` invocation, is
+> extended to flag both a missing comment where the WHY is genuinely
+> non-obvious, and a comment that only
 > restates the code.
 
 ### Applicability to the guildhall repository itself
@@ -239,3 +285,21 @@ compatibility judgment does.
 
 ## Proposal log
 See the master spec, section 6.
+
+## Changelog
+- **0.1.11** (2026-08-26) — Added "Incremental updates — Scribe's cadence
+  at `/quest-ship`": since `/quest-ship` is repeatable and on-demand
+  (AI/Agents Guild's three-phase orchestration model —
+  `/quest-embark`, `/quest-forge <feature>`, `/quest-ship`), Scribe no
+  longer produces one final documentation pass at a single step. Each
+  `/quest-ship` run now scopes its README (and other governed docs)
+  update to only the features that run's `.quest-progress.json` `deploys`
+  entry lists in `featuresIncluded`, updates the existing document in
+  place rather than rewriting it from scratch, and never assumes it's the
+  last such pass the Quest will see. "README format" itself — the
+  required sections, their order, and their content — is unchanged; only
+  the cadence and scope of updating it are. Also replaced stale
+  references to the retired step-numbered flow with the corresponding
+  skill names throughout Purpose, "ADR format," "Post-incident
+  documentation," and "Code documentation." Evidence: process change
+  following calculator-quest retrospective, 2026-08-25.

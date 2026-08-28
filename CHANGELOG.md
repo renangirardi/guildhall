@@ -11,6 +11,135 @@ own `package.json` `version` is noted in that entry — it is a third,
 independent number from the two above, since `package.json` versions the
 npm package/CLI tool, not any Guild or agent-template content.
 
+## [agentTemplatesVersion 0.1.1 / cli 0.3.0] - 2026-08-26
+This entry doesn't bump `guildhallVersion` (`guilds/manifest.json` stays
+at `0.1.11`, unchanged) — it's the first entry in this file that's
+purely an agent-template / CLI-mechanism change, logged here anyway per
+explicit instruction even though this file's own header above says such
+changes are "tracked independently." No dedicated agent-template
+changelog exists yet to track them instead.
+
+### Changed
+- **`bin/cli.js`** (`package.json` `0.2.0` → `0.3.0`) — `cmdInit` now
+  also scaffolds `docs/feature-backlog.md` and `docs/features/README.md`
+  the same way it already scaffolds `guild-proposals.md` and
+  `process-gaps.md`: written once at `init`, never overwritten by
+  `update`, since both become living Quest documents the moment Herald
+  starts writing to them (Product/Ideation Guild, "Feature backlog
+  format" and "Feature Brief format"). The stale comment describing
+  `quest-flow` as "the orchestrator" copied unconditionally is replaced
+  with one describing the three Quest-phase skills
+  (`quest-embark`/`quest-forge`/`quest-ship`) that already replaced it
+  — the actual copy logic (`copyDirRecursive` over
+  `templates/claude/skills/`) needed no functional change, since it was
+  already generic over whatever skill directories exist rather than
+  hardcoding `quest-flow` by name. The `init`/`update` help text is
+  updated to match. Verified with a scratch `init` + `update` run: the
+  three new skills install and re-sync correctly, and a developer-added
+  line in `docs/feature-backlog.md` survives `update` untouched.
+- **`templates/manifest.json`** (`agentTemplatesVersion` `0.1.0` →
+  `0.1.1`) — bumped for the skill-set change above (`quest-flow`
+  retired, `quest-embark`/`quest-forge`/`quest-ship` are what `init`/
+  `update` now install), per this repository's convention that
+  `agentTemplatesVersion` moves independently of `guildhallVersion` and
+  only when an agent template or skill actually changes.
+
+Evidence: process change following calculator-quest retrospective,
+2026-08-25 — replaces `/quest-flow` with `/quest-embark`,
+`/quest-forge`, `/quest-ship`.
+
+## [0.1.11] - 2026-08-26
+
+### Changed
+- **Documentation Guild** — added "Incremental updates — Scribe's
+  cadence at `/quest-ship`": since `/quest-ship` is repeatable and
+  on-demand (AI/Agents Guild's three-phase orchestration model — see the
+  `[0.1.8]` entry above and `guilds/ai-agents.md`), Scribe no longer
+  produces one final documentation pass at a single step. Each
+  `/quest-ship` run now scopes its README (and other governed docs)
+  update to only the features that run's `.quest-progress.json`
+  `deploys` entry lists in `featuresIncluded`, updates the existing
+  document in place rather than rewriting it from scratch, and never
+  assumes it's the last such pass the Quest will see. "README format"
+  itself is unchanged — only the cadence and scope of updating it are.
+  Also replaced stale references to the retired step-numbered flow with
+  the corresponding skill names throughout Purpose, "ADR format",
+  "Post-incident documentation", and "Code documentation". Evidence:
+  process change following calculator-quest retrospective, 2026-08-25.
+  See `guilds/documentation.md`.
+
+## [0.1.10] - 2026-08-26
+
+### Changed
+- **Architecture Guild** — added "Extensibility over premature
+  optimization at `/quest-embark`": since architecture is now designed
+  once, before any feature has a Feature Brief (AI/Agents Guild's
+  three-phase orchestration model — see the `[0.1.8]` entry above and
+  `guilds/ai-agents.md`), decisions must favor extensibility over
+  optimizing for the few features already known in detail. Concretely:
+  data models should not assume a closed set of use cases, rigid
+  couplings that only suit the first implemented feature should be
+  avoided, and Loremaster must flag in `docs/architecture.md` itself
+  when an early decision may need revisiting once a specific backlog
+  entry is detailed later. Also replaced stale references to the
+  retired step-numbered flow with the corresponding skill names in
+  Purpose, "Default stack," "Type checking," and "Persistence
+  decisions," and cross-linked "Persistence decisions" to the new rule.
+  Evidence: process change following calculator-quest retrospective,
+  2026-08-25. See `guilds/architecture.md`.
+
+## [0.1.9] - 2026-08-26
+
+### Changed
+- **Product/Ideation Guild** — reworked for the AI/Agents Guild's three-
+  phase orchestration model (`/quest-embark`, `/quest-forge <feature>`,
+  `/quest-ship` — see the `[0.1.8]` entry below and
+  `guilds/ai-agents.md`). Added "Herald's two modes: Vision Mode and
+  Feature Brief Mode": Vision Mode (`/quest-embark`, once per Quest)
+  produces a deliberately incomplete Quest Brief — vision, `type`,
+  general app-level success criteria, no feature-by-feature acceptance
+  criteria — plus a loose `docs/feature-backlog.md` (one to two sentences
+  per candidate feature, tagged `planned` / `in-progress` / `done`).
+  Feature Brief Mode (`/quest-forge <feature>`, repeatable) produces a
+  complete, detailed Feature Brief for exactly one feature — full
+  acceptance criteria, scope, edge cases — at `docs/features/<slug>.md`,
+  whether that feature came from the backlog or was described fresh by
+  the developer. Added new "Feature backlog format" and "Feature Brief
+  format" rules; updated "Quest Brief format," "Acceptance criteria must
+  be verifiable," "Explicit 'out of scope'," "Herald's authority"
+  (renamed from "Product agent authority"), and "When an idea (or a
+  feature) is too vague" to cover both documents/modes. Made explicit
+  that "`type` as a default to confirm" is unchanged by this
+  restructuring — `type` stays fixed once by `init` and confirmed only
+  inside `/quest-embark`, never re-asked by `/quest-forge`. Evidence:
+  process change following calculator-quest retrospective, 2026-08-25.
+  See `guilds/product-ideation.md`.
+
+## [0.1.8] - 2026-08-26
+
+### Changed
+- **AI/Agents Guild** — reworked "Agent roles and decision authority"
+  and "Standard agent output locations" to describe the new three-phase
+  orchestration model instead of the retired twelve-step linear flow:
+  `/quest-embark` (once per Quest — Herald's Quest Brief and
+  `docs/feature-backlog.md`, Loremaster's architecture, a human
+  Checkpoint, Artificer's scaffold), `/quest-forge <feature>` (repeatable
+  — Herald's per-feature Brief at `docs/features/<slug>.md`, Artificer's
+  implementation, Sentinel's tests, Warden's review), and `/quest-ship`
+  (repeatable/on-demand — a Checkpoint over everything built since the
+  last deploy, Quartermaster's deploy and monitoring, Scribe's
+  incremental documentation update). Added a new "Orchestration model —
+  three Quest-phase skills" section and a new "`.quest-progress.json` —
+  schema for the three-phase model" section (`foundation` / `features` /
+  `deploys`, with a worked example), and made explicit that the human
+  Checkpoint now recurs at two *kinds* of point — end of `/quest-embark`,
+  and every `/quest-ship` run — rather than two fixed one-time steps.
+  The three new skills themselves (`templates/claude/skills/quest-embark/`,
+  `quest-forge/`, `quest-ship/`) and the retirement of `/quest-flow` are
+  out of scope for this change — tracked separately. Evidence: process
+  change following calculator-quest retrospective, 2026-08-25. See
+  `guilds/ai-agents.md`.
+
 ## [0.1.7] - 2026-08-25
 
 ### Added

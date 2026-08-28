@@ -6,54 +6,180 @@
 ## Purpose
 Every other Guild defines a standard for the Quest itself — code, tests,
 infrastructure, data. This Guild is different: it defines how the agents
-in the development flow (master spec, section 5) are supposed to behave
-while consuming and applying those standards — what each agent role can
-decide alone, when a proposed action needs a human's explicit go-ahead,
-when a new pattern belongs in `guild-proposals.md`, and what to do when
-the Guild an agent needs isn't finished yet. It formalizes practices that
-were already happening informally across the other seven Guilds before
-this one existed. Consulted by every agent, at every step of the flow —
-not just one.
+invoked across the Quest-phase skills (master spec, section 5; see
+"Orchestration model — three Quest-phase skills" below for the three
+skills themselves) are supposed to behave while consuming and applying
+those standards — what each agent role can decide alone, when a proposed
+action needs a human's explicit go-ahead, when a new pattern belongs in
+`guild-proposals.md`, and what to do when the Guild an agent needs isn't
+finished yet. It formalizes practices that were already happening
+informally across the other seven Guilds before this one existed.
+Consulted by every agent, at every phase of that model — not just one.
 
 ## Rules
 
-### Agent roles and decision authority
-Each named agent from the development flow consults specific Guilds and
-has a bounded authority — decisions within its Guilds' rules are its own
-to make; decisions that deviate from those rules, or that reach outside
-its step, are not.
+### Orchestration model — three Quest-phase skills
+The development flow this Guild's other rules assume (Purpose, above) is
+no longer one linear twelve-step sequence run by a single skill. It's
+three independently invocable skills, each covering a self-contained
+phase, each living in its own directory under
+`templates/claude/skills/` — `/quest-embark`, `/quest-forge`,
+`/quest-ship`. As with the skill this model replaces, a skill's
+slash-command name comes from its *directory* name
+(`templates/claude/skills/<dir>/SKILL.md` → `/<dir>`), never from the
+file's own `name:` frontmatter field — the same rule the retired
+`/quest-flow` skill's own "Naming note" already documented.
 
-- **Product** (step 2, Product/Ideation Guild) — decides how to structure
-  and phrase a Quest Brief from the idea given. Does not decide whether
-  the Quest gets built at all — that's the human's call at ideation
-  (step 1) and confirmed again at the Checkpoint (step 4). This includes
-  the `type` value already fixed in `.guildhall-lock.json` at `init`,
-  ahead of this step — see the Product/Ideation Guild's "`type` as a
-  default to confirm, not a decision made from scratch" for the full
-  rule.
-- **Architect** (step 3, Architecture + Data Guild) — decides structural
-  choices within those Guilds' defaults, including whether the Quest
-  needs a database. Does not decide to deviate from the Architecture
-  Guild's default stack without explicitly flagging the deviation for
-  the Checkpoint.
-- **Builder** (steps 5-6, Code Style + Ops/Infra + Security Guild) —
-  decides implementation details within those Guilds' rules, following
-  the lib-first-then-UI split (spec section 5). Does not decide to add a
+- **`/quest-embark`** — once per Quest. Herald writes a Quest Brief that
+  is *deliberately* incomplete (it states the app's vision, not every
+  feature in detail) plus a loose backlog of candidate features at
+  `docs/feature-backlog.md` (each entry tagged `planned` / `in-progress`
+  / `done`); Loremaster designs the architecture; a human Checkpoint
+  approves both; Artificer scaffolds the repository (structure, CI/CD,
+  base config). Ends with a Quest ready to receive features, not a Quest
+  with every feature already planned in detail.
+- **`/quest-forge <feature>`** — repeatable, once per feature, as many
+  times as the backlog needs. Herald writes a Feature Brief for *only*
+  that feature at `docs/features/<slug>.md` — a file that does not exist
+  before this invocation; Artificer implements it; Sentinel tests it;
+  Warden reviews it. Ends the turn presenting the result. This
+  introduces no new pause mechanism — it reuses the principle the
+  retired `/quest-flow` skill already established: the skill ends its
+  turn, and resuming is the developer sending the next message, not any
+  kind of callback, poll, or background process.
+- **`/quest-ship`** — repeatable, on demand. Does not wait for the whole
+  backlog to reach `done`; it publishes whatever is ready as of that
+  invocation. Each run: a Checkpoint reviews everything built since the
+  last deploy, Quartermaster deploys and monitors, and Scribe writes an
+  *incremental* documentation update — never a single "final
+  documentation" pass, since further `/quest-ship` runs may still follow.
+
+**The human Checkpoint now happens at two kinds of point, not two fixed
+steps in one sequence**: once at the end of `/quest-embark` (approving
+the Quest Brief and the architecture), and again *every time*
+`/quest-ship` runs (reviewing what that specific run is about to
+publish). Because `/quest-ship` is repeatable and on-demand, this second
+kind of Checkpoint can happen several times over a single Quest's
+lifetime — it is not a one-time gate the way the old step-9 Checkpoint
+was. No Checkpoint exists inside `/quest-forge`; a feature's review is
+Warden's job, not a human pause — consistent with that skill ending its
+turn without introducing any new pause mechanism (above).
+> Enforcement: agent-reviewed — a script can check that a Checkpoint's
+> status was actually set to `approved` before the next phase proceeds
+> (see the `.quest-progress.json` schema below, which carries the same
+> "never inferred from silence" rule the retired schema had), but
+> recognizing that a `/quest-ship` run's Checkpoint must be re-run every
+> single time, not just the first, is a judgment call a tired or eager
+> agent could get wrong.
+
+### `.quest-progress.json` — schema for the three-phase model
+Replaces the single linear `steps` map the retired `/quest-flow` skill
+used. Three top-level sections, matching the three skills' own
+cardinality — one runs once, one grows per feature, one grows per deploy:
+
+```json
+{
+  "version": "2.0",
+  "questType": "web-app",
+  "updatedAt": "2026-08-26T00:00:00Z",
+  "foundation": {
+    "status": "done",
+    "checkpoint": "approved",
+    "completedAt": "2026-08-20T00:00:00Z"
+  },
+  "features": [
+    {
+      "slug": "user-auth",
+      "brief": "docs/features/user-auth.md",
+      "status": "done",
+      "forgedAt": "2026-08-22T00:00:00Z"
+    },
+    {
+      "slug": "password-reset",
+      "brief": "docs/features/password-reset.md",
+      "status": "in-progress",
+      "forgedAt": "2026-08-24T00:00:00Z"
+    }
+  ],
+  "deploys": [
+    {
+      "deployedAt": "2026-08-23T00:00:00Z",
+      "checkpoint": "approved",
+      "featuresIncluded": ["user-auth"],
+      "note": "first ship — password-reset not yet forged at this point"
+    }
+  ]
+}
+```
+
+- **`foundation`** — written once, by `/quest-embark`. `status` follows
+  the same `pending` / `in-progress` / `done` vocabulary the retired
+  `steps` map used; `checkpoint` is `pending` or `approved`, carrying the
+  same rule the retired schema had — never set to `approved` except by
+  an explicit developer confirmation, never inferred from silence or from
+  the developer moving on to another topic.
+- **`features`** — an array, one entry appended per `/quest-forge
+  <feature>` invocation, never removed or overwritten by a later run
+  against a different feature. `slug` matches the feature's
+  `docs/features/<slug>.md` filename (Herald decides the slug when it
+  writes that Brief — see "Standard agent output locations" below).
+  `status` tracks that one feature's own implementation/test/review
+  cycle, independent of every other entry in the array.
+- **`deploys`** — an array, one entry appended per `/quest-ship`
+  invocation. `featuresIncluded` records which `features[].slug` values
+  were part of *that* deploy — since `/quest-ship` runs on demand rather
+  than waiting for the full backlog, this is the only record of which
+  features actually shipped together in a given release, and it does not
+  retroactively include features forged after that deploy already ran.
+> Enforcement: agent-reviewed — matches the enforcement posture the
+> retired schema's own rules carried; no script currently validates this
+> file's shape against the schema above.
+
+### Agent roles and decision authority
+Each named agent from the Quest-phase skills (see "Orchestration model"
+above) consults specific Guilds and has a bounded authority — decisions
+within its Guilds' rules are its own to make; decisions that deviate from
+those rules, or that reach outside its own skill invocation, are not.
+
+- **Product** (Herald — `/quest-embark`'s Quest Brief, and every
+  `/quest-forge <feature>`'s Feature Brief; Product/Ideation Guild) —
+  decides how to structure and phrase whichever brief it is currently
+  writing. Does not decide whether the Quest gets built at all — that's
+  the human's call at ideation and confirmed again at `/quest-embark`'s
+  Checkpoint — nor which feature gets forged next, since that's the
+  developer's choice of what to invoke `/quest-forge` on, not Herald's
+  call. This includes the `type` value already fixed in
+  `.guildhall-lock.json` at `init`, ahead of `/quest-embark` — see the
+  Product/Ideation Guild's "`type` as a default to confirm, not a
+  decision made from scratch" for the full rule.
+- **Architect** (Loremaster — `/quest-embark`; Architecture + Data Guild)
+  — decides structural choices within those Guilds' defaults, including
+  whether the Quest needs a database. Does not decide to deviate from the
+  Architecture Guild's default stack without explicitly flagging the
+  deviation for `/quest-embark`'s Checkpoint.
+- **Builder** (Artificer — `/quest-embark`'s scaffold, and every
+  `/quest-forge <feature>`'s implementation; Code Style + Ops/Infra +
+  Security Guild) — decides implementation details within those Guilds'
+  rules, following the lib-first-then-UI split (spec section 5) within
+  whichever feature it's currently implementing. Does not decide to add a
   dependency without the one-sentence justification the Security Guild
   requires, and does not decide to restructure folders against the
   Architecture Guild.
-- **QA** (step 7, Testing/QA Guild) — decides which specific scenarios a
-  given test suite covers. Does not decide to skip the error/edge-case
-  requirement or ship below the coverage threshold.
-- **Reviewer** (step 8, Security + Code Style checklist, including the
-  language check) — decides what to flag. Does not decide to wave through
-  a blocking CI failure as part of approval.
-- **Ops** (steps 10-11, Ops/Infra + Monitoring Guild) — decides routine
-  deploys that pass every blocking check. Does not decide, alone, to
-  execute a rollback or any other high-impact production action — see
-  the general rule below.
-- **Docs** (step 12, Documentation Guild — still draft) — decides how to
-  write up what was built, within whatever the Documentation Guild
+- **QA** (Sentinel — `/quest-forge <feature>`; Testing/QA Guild) —
+  decides which specific scenarios that feature's test suite covers.
+  Does not decide to skip the error/edge-case requirement or ship below
+  the coverage threshold.
+- **Reviewer** (Warden — `/quest-forge <feature>`; Security + Code Style
+  checklist, including the language check) — decides what to flag for
+  that feature. Does not decide to wave through a blocking CI failure as
+  part of approval.
+- **Ops** (Quartermaster — `/quest-ship`; Ops/Infra + Monitoring Guild) —
+  decides routine deploys that pass every blocking check. Does not
+  decide, alone, to execute a rollback or any other high-impact
+  production action — see the general rule below.
+- **Docs** (Scribe — `/quest-ship`; Documentation Guild — still draft) —
+  decides how to write up the incremental update for what changed since
+  the last `/quest-ship` run, within whatever the Documentation Guild
   settles on once it's active.
 > Enforcement: agent-reviewed — this is a judgment boundary, not a
 > mechanical check; the Reviewer agent and the human Checkpoints are the
@@ -71,15 +197,17 @@ shape (a new agent, or a step whose output location hasn't been decided
 yet) has an obvious table row to add instead of another one-off Quest
 convention.
 
-| Agent (codename) | Role / step | Output location | Defined by |
+| Agent (codename) | Role / skill | Output location | Defined by |
 |---|---|---|---|
-| Herald | Product, step 2 | `docs/quest-brief.md` | Product/Ideation Guild, "Quest Brief format" |
-| Loremaster | Architect, step 3 | `docs/architecture.md` | This row — formalized here; evidence: calculator-quest, step 3 (Loremaster). See the Architecture Guild's Purpose for the cross-reference back to this section. |
-| Artificer | Builder, steps 5-6 | The Quest's own source tree (scaffold + feature code) — not a single file | Architecture Guild, "Folder structure" |
-| Sentinel | QA, step 7 | Test files co-located with the source they test (`*.test.ts` / `*.test.tsx`) | Testing/QA Guild, "File organization" |
-| Warden | Reviewer, step 8 | Not yet standardized — a real gap, not a conscious decision | — |
-| Quartermaster | Ops, steps 10-11 | Deploys are an action, not a written artifact. A post-incident write-up, when one is warranted, goes to `/docs/incidents/YYYY-MM-DD-short-title.md` | Documentation Guild, "Post-incident documentation" |
-| Scribe | Docs, step 12 | `README.md` at the Quest root, plus `/docs/adr/NNNN-short-title.md` for any ADR the step warrants | Documentation Guild, "README format" / "ADR format" |
+| Herald | Product, `/quest-embark` | `docs/quest-brief.md` | Product/Ideation Guild, "Quest Brief format" |
+| Herald | Product, `/quest-embark` | `docs/feature-backlog.md` | This row — formalized here as part of the three-phase orchestration model. Evidence: process change following calculator-quest retrospective, 2026-08-25. |
+| Herald | Product, `/quest-forge <feature>` | `docs/features/<slug>.md` — does not exist before that feature's `/quest-forge` invocation | This row — same evidence as above |
+| Loremaster | Architect, `/quest-embark` | `docs/architecture.md` | This row — formalized here; evidence: calculator-quest, step 3 (Loremaster). See the Architecture Guild's Purpose for the cross-reference back to this section. |
+| Artificer | Builder, `/quest-embark` (scaffold) + `/quest-forge <feature>` (implementation) | The Quest's own source tree (scaffold + feature code) — not a single file | Architecture Guild, "Folder structure" |
+| Sentinel | QA, `/quest-forge <feature>` | Test files co-located with the source they test (`*.test.ts` / `*.test.tsx`) | Testing/QA Guild, "File organization" |
+| Warden | Reviewer, `/quest-forge <feature>` | Not yet standardized — a real gap, not a conscious decision | — |
+| Quartermaster | Ops, `/quest-ship` | Deploys are an action, not a written artifact. A post-incident write-up, when one is warranted, goes to `/docs/incidents/YYYY-MM-DD-short-title.md` | Documentation Guild, "Post-incident documentation" |
+| Scribe | Docs, `/quest-ship` | `README.md` at the Quest root, plus `/docs/adr/NNNN-short-title.md` for any ADR a given run warrants — updated incrementally on every `/quest-ship` run, never written as a single final pass | Documentation Guild, "README format" / "ADR format" |
 
 - A row with a "Defined by" Guild is not this Guild's rule to restate —
   it's a pointer to where the actual requirement (format, required
@@ -95,9 +223,12 @@ convention.
   exactly the pattern the Architecture Guild's "Persistence decisions"
   section now follows for the Architect/Loremaster row.
 > Enforcement: agent-reviewed — a script could check that a Quest's
-> `docs/quest-brief.md` and `docs/architecture.md` exist by the relevant
-> step, but whether an agent chose the *right* location for output this
-> table doesn't yet cover is a judgment call until that row is filled in.
+> `docs/quest-brief.md`, `docs/feature-backlog.md`, and
+> `docs/architecture.md` exist by the end of `/quest-embark`, and that a
+> `docs/features/<slug>.md` exists before that feature's `/quest-forge`
+> run is considered complete, but whether an agent chose the *right*
+> location for output this table doesn't yet cover is a judgment call
+> until that row is filled in.
 
 ### When to apply `agent-recommended, human-confirmed`
 The tag already appears twice — the Ops/Infra Guild's rollback and the
@@ -336,6 +467,25 @@ how good the classification tooling gets.
 See the master spec, section 6.
 
 ## Changelog
+- **0.1.8** (2026-08-26) — Replaced every reference to the retired
+  linear twelve-step flow with the three independently invocable
+  Quest-phase skills — `/quest-embark` (once per Quest), `/quest-forge
+  <feature>` (repeatable, once per feature), `/quest-ship` (repeatable,
+  on demand) — across "Agent roles and decision authority" and "Standard
+  agent output locations". Added a new "Orchestration model — three
+  Quest-phase skills" section describing the three skills themselves and
+  the rule that a human Checkpoint now happens at two *kinds* of point
+  rather than two fixed steps: the end of `/quest-embark`, and every
+  `/quest-ship` run (so it can recur several times per Quest, not just
+  once). Added a new "`.quest-progress.json` — schema for the
+  three-phase model" section, replacing the old single `steps` map with
+  three sections (`foundation`, `features`, `deploys`) and a worked
+  example. "Standard agent output locations" now also lists
+  `docs/feature-backlog.md` and `docs/features/<slug>.md` as Herald
+  outputs, both written by `/quest-embark`/`/quest-forge` respectively.
+  The retired `/quest-flow` skill itself is out of scope for this entry
+  — handled separately. Evidence: process change following
+  calculator-quest retrospective, 2026-08-25.
 - **0.1.7** (2026-08-25) — Added "Logging a `process-gaps.md` entry": a
   new mandatory rule requiring any agent that concludes "this is real,
   but not my scope to act on or log as a Guild proposal right now" to
