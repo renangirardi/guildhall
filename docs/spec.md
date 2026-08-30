@@ -1,7 +1,7 @@
 # AetherForge — Documento de especificação
 
 > Documento de referência para dar continuidade ao projeto em novas conversas.
-> Última atualização: 2026-08-26
+> Última atualização: 2026-08-30
 
 ---
 
@@ -55,10 +55,57 @@ para a mudança em si.
 
 Essa segunda rodada tocou quatro Guilds (AI/Agents, Product/Ideation,
 Architecture, Documentation) e o mecanismo de CLI, levando o
-`guildhallVersion` (`guilds/manifest.json`) a **`0.1.11`**, o
-`agentTemplatesVersion` (`templates/manifest.json`) a **`0.1.1`** e a
-versão do próprio CLI (`package.json`) a **`0.3.0`**. Detalhe completo
+`guildhallVersion` (`guilds/manifest.json`) a `0.1.11`, o
+`agentTemplatesVersion` (`templates/manifest.json`) a `0.1.1` e a
+versão do próprio CLI (`package.json`) a `0.3.0`. Detalhe completo
 em cada Guild afetada, no `CHANGELOG.md` da raiz, e na seção 9.2 abaixo.
+
+Uma terceira mudança, menor e pontual (2026-08-30), respondeu a feedback
+de uso real de `/quest-embark`: os agentes dessa fase (sobretudo o
+Herald) inferiam demais sozinhos, e o Quest Brief resultante às vezes não
+refletia o que o desenvolvedor realmente queria. A correção foi
+substituir, só no Modo Visão do Herald, o antigo padrão "infere o que
+puder, pergunta só se for ambíguo" por uma rodada fixa de seis perguntas
+sempre feita antes do Brief ser escrito — ver seção 9.3. Isso levou o
+`guildhallVersion` a `0.1.12` e o `agentTemplatesVersion` a `0.1.2` (o
+CLI em si, `package.json`, não mudou nesta rodada).
+
+Uma quarta mudança, no mesmo dia (2026-08-30), respondeu a outro
+feedback de uso real: os agentes de cada skill encadeavam seu trabalho
+automaticamente, sem parar para revisão — o relatório de um agente já
+tinha um próximo agente agindo em cima dele antes de haver tempo real de
+ler o relatório com calma, principalmente em conversas longas. A
+correção foi generalizar o conceito de Checkpoint: agora **todo agente
+nomeado, nas três skills, para para aprovação humana explícita
+imediatamente depois de terminar seu trabalho** — sem exceção, inclusive
+no ciclo de correção do Warden dentro de `/quest-forge` e no último
+agente de cada skill — ver seção 9.4. Isso tocou a AI/Agents Guild (o
+schema do `.quest-progress.json` ganhou rastreamento por agente) e as
+três skills (`quest-embark`, `quest-forge`, `quest-ship`), levando o
+`guildhallVersion` a `0.1.13` e o `agentTemplatesVersion` a `0.1.3` (o
+CLI em si, `package.json`, não mudou nesta rodada).
+
+Uma quinta mudança, ainda no mesmo dia (2026-08-30), fechou uma lacuna
+diferente: nada no sistema tratava uma Quest que depende de **outra**
+aplicação ainda não construída (o caso canônico é um frontend que
+precisa de um backend que ninguém fez ainda, mas o mecanismo é o mesmo
+pra qualquer direção — API dependendo de outra API, CLI dependendo de
+um serviço). A correção deu ao Loremaster uma nova decisão de
+arquitetura — estratégia de mock (fixtures estáticas em `mocks/` por
+padrão, não uma biblioteca de interceptação de rede) — e introduziu
+`docs/integration-contract.md`, escrito incrementalmente (esqueleto no
+`/quest-embark`, uma entrada por operação a cada `/quest-forge` que
+toca a dependência) e formatado de propósito pra servir quase como
+"ideia" pronta pra um `/quest-embark` futuro da dependência em si — ver
+seção 9.5. Tocou a Architecture Guild (a regra em si), a AI/Agents Guild
+(novas linhas na tabela de output locations), o Product/Ideation Guild
+(o intake do Herald passou a perguntar sobre isso) e a Documentation
+Guild (o README aponta pro contrato quando aplicável). Nenhuma skill ou
+template de agente mudou — Loremaster e Artificer já leem a Guild
+inteira antes de agir, mesmo padrão de "Persistence decisions". Isso
+levou o `guildhallVersion` a **`0.1.14`** (`agentTemplatesVersion` e
+`package.json` não mudaram nesta rodada). **Esses são os números
+vigentes hoje.**
 
 O MVP original (calculadora, repositório e deploy na Vercel) foi
 desativado — seus aprendizados já estavam capturados na seção 9 antes da
@@ -94,7 +141,7 @@ e 11 desse fluxo linear e resultou em sete correções diretas às Guilds
 | **Chronicle**   | Registro de propostas de melhoria a uma Guild (`guild-proposals.md`), geradas durante o desenvolvimento de uma Quest, aguardando revisão humana.              |
 | **Process gaps** | Registro (`process-gaps.md`) de achados reais que um agente concluiu não serem seu escopo agir ou propor como regra de Guild agora — mesmo mecanismo de distribuição do Chronicle, mas revisado em separado, sem uma decisão de aceitar/rejeitar regra por trás. Ver seção 6. |
 | **Guildhall**   | O repositório central específico dentro do AetherForge, onde as Guilds e os templates de orquestração de agentes vivem, empacotado como CLI instalável.       |
-| **Checkpoint**  | Gate humano de revisão dentro do fluxo de desenvolvimento. Desde a reestruturação em três fases (seção 9.2), acontece em dois *tipos* de ponto, não em dois passos fixos: ao final de `/quest-embark` (aprovação de Quest Brief + arquitetura), e a cada execução de `/quest-ship` (revisão do que será publicado) — o segundo pode se repetir várias vezes ao longo de uma Quest.                                                                                     |
+| **Checkpoint**  | Gate humano de revisão dentro do fluxo de desenvolvimento. Desde a introdução dos Checkpoints por agente (seção 9.4, 2026-08-30), acontece depois de **todo agente nomeado**, nas três skills, sem exceção — inclusive a cada passagem pelo ciclo de correção do Warden dentro de `/quest-forge`, e no último agente de cada skill (nesse caso, a fase/feature/deploy só vira `done` depois do Checkpoint aprovado, não assim que o agente termina de rodar). Um tipo à parte, mais antigo, é o Checkpoint de **escopo** do `/quest-ship` (existia desde a seção 9.2): revisa e decide o que entra no deploy *antes* de qualquer agente agir, diferente dos Checkpoints "por agente" (que revisam o que um agente já terminou). Nunca inferido do silêncio ou do desenvolvedor mudar de assunto.                                                                                     |
 
 **Nomes temáticos dos agentes (definitivos):**
 
@@ -240,15 +287,26 @@ coordenada por uma skill só (`/quest-flow`, hoje retirada). Hoje é isto:
 | Etapa                                                      | Executor                                                        |
 | ---------------------------------------------------------- | ---------------------------------------------------------------- |
 | Ideação — ideia solta em 2-3 frases                        | Você                                                              |
+| Intake — bateria fixa de 6 perguntas (seção 9.3)            | Você responde, **Herald** pergunta                                |
 | Quest Brief (Modo Visão) + `docs/feature-backlog.md`       | **Herald** (consulta Product/Ideation Guild)                      |
+| **Checkpoint (Herald)**                                     | Você                                                              |
 | Design de arquitetura, favorecendo extensibilidade         | **Loremaster** (consulta Architecture + Data Guild)               |
-| **Checkpoint** — aprovação de brief + arquitetura           | Você                                                              |
+| **Checkpoint (Loremaster)**                                  | Você                                                              |
 | Scaffold da Quest (estrutura, configs, CI/CD base)         | **Artificer** (consulta Code Style, Ops/Infra, Security Guild)    |
+| **Checkpoint (Artificer)**                                   | Você                                                              |
 
 Ao final, o Quest Brief é **propositalmente incompleto** — cobre visão,
 `type` e critérios de sucesso gerais, não o detalhe feature a feature
 (esse detalhe fica para `/quest-forge`) — e o backlog é uma lista solta,
-não uma especificação.
+não uma especificação. `foundation.status` só vira `done` depois do
+terceiro Checkpoint (Artificer) aprovado — não quando os três agentes já
+rodaram (seção 9.4). Se o intake do Herald indicar que essa Quest
+depende de outra aplicação ainda não construída, o Loremaster também
+decide a estratégia de mock e cria o esqueleto de
+`docs/integration-contract.md` nesta mesma fase (Architecture Guild,
+"External dependencies — mocking and the integration contract"; seção
+9.5) — não todo `/quest-embark` produz esses dois artefatos, só quando
+essa dependência existe de fato.
 
 **`/quest-forge <feature>`** — repetível, uma feature por execução, tantas
 vezes quanto o backlog (ou o desenvolvedor) precisar:
@@ -256,24 +314,42 @@ vezes quanto o backlog (ou o desenvolvedor) precisar:
 | Etapa                                                      | Executor                                                                         |
 | ---------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | Feature Brief completo só daquela feature                 | **Herald**, Modo Feature Brief (consulta Product/Ideation Guild)                  |
+| **Checkpoint (Herald)**                                      | Você                                                                               |
 | Implementação da feature                                   | **Artificer**                                                                      |
+| **Checkpoint (Artificer)**                                   | Você                                                                               |
 | Geração de testes da feature                                | **Sentinel** (consulta Testing/QA Guild)                                          |
+| **Checkpoint (Sentinel)**                                    | Você                                                                               |
 | Revisão de código da feature                                | **Warden** (checklist de Security + Code Style, incluindo verificação de idioma)  |
+| **Checkpoint (Warden)**                                      | Você                                                                               |
 
-Não existe Checkpoint humano dentro de `/quest-forge` — a revisão de
-Warden é o gate dessa fase; a skill termina o turno apresentando o
-resultado, e retomar (ou forjar a próxima feature) é o desenvolvedor
-mandando a próxima mensagem, sem nenhum mecanismo novo de pausa.
+Desde a seção 9.4, `/quest-forge` ganhou Checkpoint depois de **cada** um
+desses quatro agentes — inclusive a cada passagem pelo ciclo de correção
+quando o Warden reprova algo (Artificer conserta → Checkpoint → Sentinel
+testa de novo → Checkpoint → Warden revisa de novo → Checkpoint). Antes
+dessa mudança não existia Checkpoint humano nenhum dentro de
+`/quest-forge`; a revisão de Warden sozinha era o gate da fase. Se essa
+Quest depende de outra aplicação ainda não construída (seção 9.5),
+Artificer também atualiza `mocks/` e `docs/integration-contract.md`
+sempre que a feature em questão precisar de algo novo da dependência —
+o Warden confere que os dois foram atualizados juntos, como parte da
+mesma revisão.
 
 **`/quest-ship`** — repetível, sob demanda, publica o que estiver pronto
 até aquele momento (não espera o backlog inteiro ficar `done`):
 
 | Etapa                                                                        | Executor                                             |
 | ------------------------------------------------------------------------------ | ------------------------------------------------------ |
-| **Checkpoint** — revisão das features `done` ainda não publicadas em nenhum deploy anterior | Você                                    |
+| **Checkpoint (escopo)** — revisão das features `done` ainda não publicadas em nenhum deploy anterior | Você                    |
 | Deploy                                                                        | **Quartermaster** (consulta Ops/Infra Guild)          |
 | Monitoramento pós-deploy                                                       | **Quartermaster** (consulta Monitoring Guild)         |
+| **Checkpoint (Quartermaster)**                                                | Você                                                    |
 | Atualização **incremental** de documentação, só das features desse deploy    | **Scribe** (consulta Documentation Guild)             |
+| **Checkpoint (Scribe)**                                                       | Você                                                    |
+
+O Checkpoint de escopo, no início, já existia desde a seção 9.2 e não
+muda — decide o que entra no deploy antes de qualquer agente agir. Os
+dois novos (seção 9.4) revisam o que Quartermaster e Scribe entregaram,
+cada um depois do seu próprio passo.
 
 **Registro de propostas de melhoria às Guilds (Chronicle)** — não é uma
 etapa de nenhuma das três skills; qualquer agente, em qualquer uma
@@ -311,19 +387,32 @@ adicional foi inventado além desses.
 - Um Checkpoint continua sem ser nenhum mecanismo especial de pausa — é
   só a skill apresentando o resultado do passo anterior e terminando o
   turno; a retomada acontece porque o desenvolvedor manda uma nova
-  mensagem, na mesma sessão ou em uma futura. A diferença sob o novo
-  modelo é *onde* ele acontece: uma vez ao final de `/quest-embark`, e
-  a cada execução de `/quest-ship` (podendo se repetir várias vezes por
-  Quest) — nunca dentro de `/quest-forge`.
+  mensagem, na mesma sessão ou em uma futura. **Desde a seção 9.4
+  (2026-08-30), onde ele acontece mudou de novo**: não são mais só dois
+  *tipos* de ponto (fim de `/quest-embark`, cada `/quest-ship`) — agora é
+  depois de **todo agente nomeado**, nas três skills, sem exceção
+  (Product/Ideation Guild, "Vision Mode intake", é o único tipo de pausa
+  que não é um Checkpoint — pergunta *antes* do Herald trabalhar, não
+  aprova o que ele já entregou).
 - Progresso é persistido em `.quest-progress.json`, na raiz da própria
-  Quest, com um schema novo de três seções (AI/Agents Guild,
-  "`.quest-progress.json` — schema for the three-phase model"):
-  - `foundation` — preenchida uma vez, por `/quest-embark`.
+  Quest, com um schema de três seções (AI/Agents Guild,
+  "`.quest-progress.json` — schema for the three-phase model"), cada uma
+  agora também com um objeto `steps` rastreando `status`/`checkpoint`
+  por agente individualmente (seção 9.4):
+  - `foundation` — preenchida uma vez, por `/quest-embark`; só vira
+    `done` quando os três agentes (`herald`, `loremaster`, `artificer`)
+    estão com Checkpoint aprovado.
   - `features` — array, cresce uma entrada por execução de
-    `/quest-forge`.
+    `/quest-forge`; cada entrada só vira `done` quando os quatro agentes
+    (`herald`, `artificer`, `sentinel`, `warden`) estão com Checkpoint
+    aprovado — uma passagem pelo ciclo de correção do Warden reseta
+    `artificer`/`sentinel`/`warden` de volta a `pending`, sem acumular
+    histórico de tentativas.
   - `deploys` — array, cresce uma entrada por execução de
     `/quest-ship`, cada entrada registrando quais features (por
-    `slug`) entraram naquele deploy específico (`featuresIncluded`).
+    `slug`) entraram naquele deploy específico (`featuresIncluded`) e
+    carregando tanto o Checkpoint de escopo (campo `checkpoint`, no
+    nível da entrada) quanto os `steps` de `quartermaster`/`scribe`.
   Continua sobrevivendo a múltiplas sessões — inclusive depois de um
   `/clear` ou de interrupções por limite de uso do Claude Code (janela
   de 5h / limite semanal) — pelo mesmo motivo de sempre: é estado em
@@ -733,6 +822,233 @@ changelog — ver o changelog de cada arquivo em `guilds/` e o
 Ver `CHANGELOG.md` da raiz para as entradas completas (`[0.1.8]` a
 `[0.1.11]`, e `[agentTemplatesVersion 0.1.1 / cli 0.3.0]`).
 
+### 9.3 Rodada fixa de perguntas no Modo Visão do Herald (2026-08-30)
+
+Feedback de uso real do `/quest-embark` (não uma retrospectiva pós-Quest
+como 9.1/9.2, mas o mesmo tipo de correção de processo): os agentes
+dessa fase — sobretudo o Herald — decidiam demais por conta própria, e o
+Quest Brief resultante às vezes não refletia o que o desenvolvedor
+queria de fato. A causa raiz identificada foi a própria regra do
+Product/Ideation Guild então vigente para o Modo Visão ("Herald's
+authority"): inferir tudo que a ideia não resolvesse explicitamente, e
+perguntar só quando algo fosse genuinamente ambíguo — "one question, not
+an intake form".
+
+**Decisão**: substituir esse default, **só no Modo Visão**, por uma
+rodada fixa de seis perguntas que o Herald sempre faz antes de escrever
+`docs/quest-brief.md`, independente de quão completa a ideia original
+pareça:
+
+1. **Problema e público** — quem usa isso e que dor resolve.
+2. **Tipo confirmado** — `web-app | api | cli | script`, e se
+   `web-app`/`api`: single-user ou multi-user.
+3. **Limites do v1** — o que é essencial na primeira versão vs. o que
+   fica pra depois de propósito.
+4. **Critério de sucesso** — como saber que a Quest está funcionando, de
+   um jeito verificável.
+5. **Restrições conhecidas** — preferência técnica, integração
+   obrigatória, ambiente de execução específico.
+6. **Não-objetivos explícitos** — algo que o desenvolvedor ativamente
+   não quer que a Quest faça, distinto de algo simplesmente deixado fora
+   do v1.
+
+Perguntadas sempre juntas, numa lista curta numerada, numa única
+mensagem — não um formulário de intake extenso, nem uma pergunta por
+vez. O **Modo Feature Brief** (`/quest-forge <feature>`) não muda: continua
+com o modelo antigo, uma pergunta só quando a feature é ambígua — uma
+feature individual é uma decisão bem menor que a forma da Quest inteira,
+e uma rodada de seis perguntas seria desproporcional para um pedido de
+uma frase. O **Loremaster** também não muda — continua aplicando os
+defaults da Architecture/Data Guild e só sinalizando desvio no
+Checkpoint, em vez de ter sua própria rodada de perguntas (decisão
+consciente de escopo, avaliada e descartada nesta mesma rodada de
+mudança — ver seção 5.1 se isso for revisitado no futuro).
+
+**O que mudou:**
+
+- **Product/Ideation Guild (`0.1.9` → `0.1.10`)** — nova regra "Vision
+  Mode intake — a fixed round of questions before drafting"; "Herald's
+  authority: what it infers versus what it asks" reescrita para
+  restringir seu modelo de pergunta-só-se-ambíguo ao Modo Feature Brief;
+  "`type` as a default to confirm" e "When an idea (or a feature) is too
+  vague to become a brief yet" atualizadas para referenciar a nova
+  rodada no Modo Visão.
+- **`templates/claude/skills/quest-embark/SKILL.md`
+  (`agentTemplatesVersion` `0.1.1` → `0.1.2`)** — o briefing de
+  delegação ao Herald passou a instruir explicitamente a rodada de
+  intake e a esperar a resposta do desenvolvedor antes de qualquer
+  rascunho, usando o mesmo padrão que essa skill já usa para contornar o
+  `herald.md` ainda não estar reescrito para o modelo de três fases
+  (seção 2, "gap conhecido") — o texto do próprio `herald.md` ainda diz
+  "never a full intake form", frase que descrevia exatamente o default
+  antigo que essa mudança substitui; o briefing de delegação da skill é
+  o que sobrepõe essa linha desatualizada até o template em si ser
+  reescrito. "How the Checkpoint actually pauses" e "Resuming" também
+  foram atualizadas para tratar essa nova espera (perguntar e terminar o
+  turno) com o mesmo mecanismo já usado no Checkpoint — sem inventar
+  nenhum mecanismo de pausa novo.
+- `guildhallVersion` (`guilds/manifest.json`): `0.1.11` → **`0.1.12`**.
+- `agentTemplatesVersion` (`templates/manifest.json`): `0.1.1` →
+  **`0.1.2`**.
+- `package.json` (CLI): não mudou nesta rodada — nenhuma mudança no
+  mecanismo do CLI em si.
+
+Ver `CHANGELOG.md` da raiz, entrada `[0.1.12]`, para o detalhe completo.
+
+### 9.4 Checkpoint depois de todo agente, nas três skills (2026-08-30)
+
+Feedback de uso real, no mesmo dia da seção 9.3: os agentes de cada
+skill encadeavam seu trabalho automaticamente — o relatório de um
+agente já tinha um próximo agente agindo em cima dele antes de haver
+tempo real de revisar com calma, especialmente numa conversa longa, onde
+o relatório acabava "perdido" no meio do histórico. Antes dessa mudança,
+só existiam dois Checkpoints no sistema inteiro: o combinado
+Brief+arquitetura ao final de Herald+Loremaster (`/quest-embark`) e o de
+escopo pré-deploy (`/quest-ship`) — nenhum dentro de `/quest-forge`.
+
+**Decisão**: generalizar o conceito de Checkpoint. Agora, sempre que
+**qualquer agente nomeado** (Herald, Loremaster, Artificer, Sentinel,
+Warden, Quartermaster, Scribe) termina seu trabalho e produz seu
+relatório, em **qualquer uma das três skills**, a skill apresenta esse
+relatório e termina o turno — sem encadear automaticamente pro próximo
+agente e sem avançar o `status` da fase/feature/deploy — até o
+desenvolvedor aprovar explicitamente na próxima mensagem. Sem exceções:
+
+- **Toda passagem de bastão entre agentes**, nas três skills — inclusive
+  Herald → Loremaster e Loremaster → Artificer em `/quest-embark`, que
+  antes rodavam direto até o Checkpoint combinado; e todos os quatro
+  agentes de `/quest-forge`, que antes não tinham Checkpoint nenhum.
+- **O ciclo de correção do Warden dentro de `/quest-forge`**: quando o
+  Warden reprova algo, o ciclo Artificer (conserta) → Sentinel (testa de
+  novo) → Warden (revisa de novo) ganha Checkpoint depois de cada um
+  desses passos também — não roda mais sozinho até voltar limpo.
+- **O último agente de cada skill** (Artificer no `/quest-embark`,
+  Warden no `/quest-forge`, Scribe no `/quest-ship`) também ganha
+  Checkpoint próprio — a fase/feature/deploy só vira `done` quando esse
+  Checkpoint final é aprovado, não assim que o agente termina de rodar.
+
+O Checkpoint de escopo do `/quest-ship` (revisão pré-deploy do que vai
+ser publicado) **não muda** — continua decidindo o que entra no deploy
+antes de qualquer agente agir, e passa a conviver com dois Checkpoints
+novos, um depois do Quartermaster e outro depois do Scribe. O Checkpoint
+combinado "Brief + arquitetura" de `/quest-embark` é **retirado**, não
+empilhado por baixo dessa regra — vira dois Checkpoints separados, um
+depois do Herald e outro depois do Loremaster. A rodada de intake do
+Herald (seção 9.3) não é um Checkpoint — pergunta *antes* do Herald
+trabalhar, não aprova o que ele já entregou; as duas coisas continuam
+distintas mesmo usando o mesmo mecanismo de "perguntar e terminar o
+turno".
+
+**O que mudou:**
+
+- **AI/Agents Guild (`0.1.8` → `0.1.9`)** — nova regra "Per-agent
+  Checkpoints — a human approval after every step, in every skill";
+  "Orchestration model" reescrita para apontar pra essa regra em vez de
+  descrever "dois tipos de ponto"; schema do `.quest-progress.json`
+  (`version` `"2.0"` → `"3.0"`) ganhou um objeto `steps` por agente
+  dentro de `foundation`, cada `features[]` e cada `deploys[]`, com
+  `status`/`checkpoint` individuais — uma passagem pelo ciclo de
+  correção reseta o estado anterior em vez de acumular histórico.
+- **`templates/claude/skills/quest-embark/SKILL.md`,
+  `quest-forge/SKILL.md`, `quest-ship/SKILL.md`**
+  (`agentTemplatesVersion` `0.1.2` → `0.1.3`) — as três reescritas para
+  inserir um Checkpoint depois de cada agente que orquestram, atualizar
+  a lógica de "Resuming" pra localizar o primeiro `steps.<agente>`
+  ainda não `{ "status": "done", "checkpoint": "approved" }`, e (no
+  `/quest-forge`) tratar o ciclo de correção do Warden com reset de
+  `steps` em vez de um loop sem parada.
+- Pequeno ajuste de precisão no `product-ideation.md`: duas referências
+  a "`/quest-embark`'s Checkpoint" (na regra "Vision Mode intake") agora
+  apontam pro Checkpoint específico do Herald, já que o combinado não
+  existe mais — sincronização cruzada com a mudança acima, sem bump de
+  versão próprio (dobrado dentro do changelog `0.1.10` já existente,
+  escrito minutos antes nesta mesma sessão).
+- `guildhallVersion` (`guilds/manifest.json`): `0.1.12` → **`0.1.13`**.
+- `agentTemplatesVersion` (`templates/manifest.json`): `0.1.2` →
+  **`0.1.3`**.
+- `package.json` (CLI): não mudou nesta rodada.
+
+Ver `CHANGELOG.md` da raiz, entrada `[0.1.13]`, para o detalhe completo.
+
+### 9.5 Dependência entre Quests — mocks e contrato de integração (2026-08-30)
+
+Feedback de uso real, ainda no mesmo dia: nada no sistema tratava uma
+Quest que depende de **outra** aplicação ainda não construída — o caso
+descrito foi um app frontend que precisa dos dados de um backend, mas o
+mesmo problema vale pra qualquer direção (API dependendo de outra API,
+CLI dependendo de um serviço). Duas consequências práticas dessa
+lacuna: o desenvolvedor não conseguia testar a Quest sozinha enquanto a
+outra não existisse, e não havia lugar nenhum registrando o que a outra
+aplicação precisaria implementar pra essa Quest funcionar de verdade.
+
+**Decisão**: o Herald passa a perguntar isso explicitamente no intake do
+Modo Visão (seção 9.3, ponto 5 — "Known constraints"). Quando a resposta
+indica uma dependência assim, o Loremaster ganha uma nova decisão de
+arquitetura, no mesmo `/quest-embark`, ao lado de "Persistence
+decisions": a estratégia de mock.
+
+- **Estratégia padrão: fixtures estáticas, não interceptação de rede.**
+  Dados de mock ficam em `mocks/`, um diretório único na raiz da Quest —
+  fácil de achar, sem precisar caçar onde estão. Uma camada fina de
+  acesso a dados em `/lib` (a mesma camada de lógica pura que a
+  Architecture Guild já exige) é quem de fato lê `mocks/`, e alterna
+  para uma chamada de rede real quando a URL base da dependência estiver
+  configurada (`.env.example`, convenção já existente da Ops/Infra
+  Guild). Uma biblioteca de interceptação de rede (ex: MSW) é permitida
+  como desvio com justificativa, mesmo padrão de "Default stack" — não é
+  o default, porque a maioria das dependências de um projeto pessoal é
+  representável como pares estáticos de request/response, sem precisar
+  simular respostas em streaming ou sequências de interação com estado.
+- **`docs/integration-contract.md` — o que a outra aplicação precisa
+  implementar.** Escrito incrementalmente, mesma disciplina do
+  `docs/feature-backlog.md`: o Loremaster cria só um esqueleto no
+  `/quest-embark` (título, um parágrafo do porquê da dependência, lista
+  vazia de operações necessárias) — os detalhes concretos não existem
+  ainda nesse ponto. A cada `/quest-forge` que toca a dependência, o
+  Artificer adiciona uma entrada por operação nova que a feature precisa
+  — formato de request/response, casos de erro, autenticação — escrita a
+  partir do **mesmo formato** da fixture que ele também adiciona em
+  `mocks/` pra essa feature. As duas coisas precisam continuar
+  descrevendo exatamente a mesma coisa; o Warden confere isso como parte
+  da revisão da feature (seção 9.4).
+- **Pensado pra alimentar um `/quest-embark` futuro, não só documentar.**
+  Cada entrada do contrato é escrita com contexto suficiente (pra que
+  serve a operação, não só o formato dela) pra que o desenvolvedor possa
+  literalmente colar esse arquivo como a "ideia" de entrada quando for
+  rodar `/quest-embark` na Quest da dependência em si — o intake do
+  Herald ali vira, na prática, confirmar o que o contrato já diz, não
+  começar do zero.
+
+**Nenhuma skill ou template de agente mudou nesta rodada** — Loremaster
+e Artificer já leem a Guild inteira antes de agir (seus respectivos
+"Required reading"), então a nova regra chega até eles do mesmo jeito
+que "Persistence decisions" já chegava, sem o `SKILL.md` do
+`/quest-embark` ou do `/quest-forge` precisar citá-la especificamente.
+
+**O que mudou:**
+
+- **Architecture Guild (`0.1.10` → `0.1.11`)** — nova regra "External
+  dependencies — mocking and the integration contract"; "Out of scope"
+  atualizada pra deixar claro que essa regra só cobre o lado consumidor
+  da dependência, não o formato da API que a própria Quest expõe.
+- **AI/Agents Guild (`0.1.9` → `0.1.10`)** — "Standard agent output
+  locations" ganhou linhas pro `docs/integration-contract.md`
+  (Loremaster) e `mocks/` + entradas incrementais do contrato
+  (Artificer); "Agent roles and decision authority" nomeou a decisão de
+  estratégia de mock explicitamente na linha do Architect.
+- **Product/Ideation Guild (`0.1.10` → `0.1.11`)** — ponto 5 do intake
+  do Modo Visão agora pergunta explicitamente sobre dependência de outra
+  aplicação ainda não construída.
+- **Documentation Guild (`0.1.11` → `0.1.12`)** — "Getting started" do
+  README aponta pra `mocks/` e `docs/integration-contract.md` quando
+  aplicável, em vez de reexplicar o que já está lá.
+- `guildhallVersion` (`guilds/manifest.json`): `0.1.13` → **`0.1.14`**.
+- `agentTemplatesVersion` (`templates/manifest.json`): não mudou —
+  continua **`0.1.3`**.
+- `package.json` (CLI): não mudou nesta rodada.
+
+Ver `CHANGELOG.md` da raiz, entrada `[0.1.14]`, para o detalhe completo.
+
 ---
 
 ## 10. Validação/enforcement das regras de Guild
@@ -808,8 +1124,13 @@ virar proposta para o Chronicle (seção 6).
   que tem "Vision Mode" e "Feature Brief Mode" — isso vive só nas
   instruções que `/quest-embark` e `/quest-forge` passam a ele na hora
   da delegação). Cada `SKILL.md` novo já nomeia isso como candidato a
-  `guild-proposals.md`, mas a entrada ainda não foi criada lá. Próximo
-  passo natural, não feito neste ciclo de mudanças.
+  `guild-proposals.md`, mas a entrada ainda não foi criada lá. A rodada
+  fixa de perguntas do Modo Visão (seção 9.3) tornou essa contradição
+  mais concreta: `herald.md` diz literalmente "never a full intake
+  form", frase que hoje descreve o oposto do que o Product/Ideation
+  Guild exige — contornado, por enquanto, pelo briefing de delegação do
+  `/quest-embark`, mesmo mecanismo já usado pra "Vision Mode"/"Feature
+  Brief Mode". Próximo passo natural, não feito neste ciclo de mudanças.
 
 ---
 

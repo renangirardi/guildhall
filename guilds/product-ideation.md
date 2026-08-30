@@ -90,6 +90,67 @@ Brief already say, with two places that could drift out of sync.
 > that belongs in a Feature Brief instead, is a judgment call for
 > whichever human reviews it at `/quest-embark`'s Checkpoint.
 
+### Vision Mode intake — a fixed round of questions before drafting
+Superseding the old default of inferring everything the idea didn't
+explicitly resolve and asking only when something was genuinely
+ambiguous (that default survives, unchanged, for Feature Brief Mode —
+see "Herald's authority" below): before writing `docs/quest-brief.md`,
+Herald in Vision Mode always asks the developer a fixed round of
+questions, covering the six points below, in a single message as a short
+numbered list — not a multi-turn interview, and not left to Herald's
+judgment about whether the idea already seems to answer one of them.
+Confirming a point the idea already implied costs the developer one
+line; a wrong silent inference this early is expensive, since every
+downstream step — Loremaster's architecture, the whole feature backlog,
+every Feature Brief a later `/quest-forge` writes — treats the Quest
+Brief as settled. Evidence: developer feedback that Vision Mode's
+prior ask-only-when-ambiguous default let the Quest Brief drift from
+what was actually wanted, 2026-08-30.
+
+1. **Problem and audience** — who actually uses this, and what pain it
+   solves for them, in the developer's own words where the idea didn't
+   already spell it out.
+2. **Type, confirmed** — `web-app | api | cli | script`; for `web-app`
+   or `api`, also single-user or multi-user, since that materially
+   changes what Loremaster designs next. Folds in the existing
+   `type`-as-default-to-confirm rule below rather than asking it twice.
+3. **v1 boundaries** — what has to exist in the very first iteration
+   versus what's deliberately left for later, feeding "Scope" and "Out
+   of scope" directly instead of Herald guessing an iteration boundary
+   on its own.
+4. **Definition of done** — how the developer will know the Quest is
+   actually working, stated concretely enough to become real acceptance
+   criteria (see "Acceptance criteria must be verifiable" below).
+5. **Known constraints** — any technical preference, required
+   integration, or environment the Quest has to run in that the
+   developer already knows about, rather than Herald or Loremaster
+   discovering it later as a forced deviation. Explicitly includes
+   whether this Quest depends on another application or service that
+   doesn't exist yet (e.g. a frontend for a backend nobody has built) —
+   flag it here by name, even loosely, so Loremaster can apply the
+   Architecture Guild's "External dependencies — mocking and the
+   integration contract" rule at `/quest-embark` instead of discovering
+   the dependency implicitly from Scope.
+6. **Explicit non-goals** — anything the developer actively does not
+   want the Quest to do, as distinct from something merely left out of
+   v1 — a deliberate choice the developer is stating up front, not an
+   omission Herald is inferring on its own.
+
+All six points are asked every time Vision Mode runs, even when the
+idea already seems to cover one of them — the developer confirming or
+correcting a restated point is the point of the round, not a formality
+to skip past. If the developer's answers leave a point still
+unresolved, that becomes an "Open questions / assumptions" entry in the
+Brief rather than a reason to ask a second round — one round, then
+draft (or stop entirely, per "When an idea (or a feature) is too vague
+to become a brief yet" below, if the answers are still too thin to
+write real content).
+> Enforcement: agent-reviewed — whether Herald actually ran this round
+> before drafting, versus drafting first and asking after, is checkable
+> at Herald's own Checkpoint (AI/Agents Guild, "Per-agent Checkpoints")
+> by whether the developer recalls being asked; no script yet verifies
+> the six points were all covered.
+
 ### Quest Brief format — Vision Mode's output
 A Quest Brief lives at `docs/quest-brief.md` and contains these sections,
 in order. None are optional — a section with genuinely nothing to say
@@ -262,48 +323,43 @@ remembering to include it.
 The AI/Agents Guild already grants Herald authority over *how* to
 structure and phrase whichever brief it's writing. This rule draws the
 line for *content* it can decide alone versus content it must ask the
-developer about first — in both modes, though the specific triggers below
-are Vision-Mode-shaped (they're about the whole Quest, including `type`,
-which only Vision Mode ever sets).
-- **Formalizes alone**: phrasing, section structure, translating a rough
-  idea into the format above, and drawing a reasonable default when the
-  idea clearly implies it — e.g. inferring `type: cli` from "a script that
-  renames files on my machine" without asking, since no other value would
-  reasonably fit that description.
-- **Asks the developer first**, before producing a Quest Brief at all,
-  when any of the following holds:
-  - The core problem is ambiguous enough that two genuinely different
-    Briefs could be written from the same idea — e.g. "a tool to track my
-    expenses" could be a single-user CLI or a multi-user web app with
-    accounts, and those imply different `type` values, different Guild
-    sets, and different acceptance criteria.
-  - The idea doesn't clearly map to one of the four `type` values, and
-    picking one would mean guessing rather than inferring — since that
-    value determines which conditional Guilds the CLI applies, a wrong
-    guess here isn't a cosmetic error.
-  - The idea's scope is open-ended enough that a meaningful "Out of scope"
-    section can't be written without Herald unilaterally picking an
-    iteration boundary the developer never stated — e.g. "a note-taking
-    app," with no signal about whether v1 needs sync, sharing, or search.
-- **Feature Brief Mode's own version of this test**: the same "asks first"
-  trigger applies at the feature level when a `/quest-forge <feature>`
-  invocation's feature — whether from the backlog or described fresh — is
-  ambiguous enough that two genuinely different Feature Briefs could be
-  written for it, or open-ended enough that a meaningful "Out of scope"
-  section for just that feature can't be written without Herald guessing
-  an iteration boundary. `type` itself is never re-asked here — it's
-  already settled by Vision Mode (see "`type` as a default to confirm"
-  below, which applies unchanged regardless of mode).
-- **Why one question, not an intake form**: the goal is one clarifying
-  question (or a short numbered list, if more than one thing is genuinely
-  unclear) — not exhaustive requirements gathering for a 2-3-sentence idea
-  or a one-line feature request. This mirrors the Security Guild's
-  one-sentence dependency justification: enough friction that an ambiguous
-  idea doesn't silently become a guessed brief, not so much that ideation
-  or feature-forging stops being fast.
+developer about first. Vision Mode's version of this line is the fixed
+intake round above — all six of its points are asked, never inferred —
+so the ambiguity-triggered model below applies at full strength only to
+**Feature Brief Mode**, where a single feature is a much smaller
+decision than the whole Quest's shape and a six-point intake round
+would be overkill for a one-line feature request.
+- **Formalizes alone** (both modes): phrasing and section structure, and
+  translating an intake answer (Vision Mode) or a feature description
+  (Feature Brief Mode) into the format above.
+- **Feature Brief Mode asks the developer first**, before producing a
+  Feature Brief at all, when either holds:
+  - The feature is ambiguous enough that two genuinely different Feature
+    Briefs could be written for it.
+  - It's open-ended enough that a meaningful "Out of scope" section for
+    just that feature can't be written without Herald unilaterally
+    picking an iteration boundary the developer never stated.
+  `type` itself is never asked here — it's already settled by Vision
+  Mode's intake round (see "`type` as a default to confirm" below, which
+  applies unchanged regardless of mode).
+- **Why one question, not an intake form — Feature Brief Mode only**: for
+  a single feature, the goal stays one clarifying question (or a short
+  numbered list, if more than one thing is genuinely unclear) — not
+  exhaustive requirements gathering for a one-line feature request. This
+  mirrors the Security Guild's one-sentence dependency justification:
+  enough friction that an ambiguous feature doesn't silently become a
+  guessed Brief, not so much that feature-forging stops being fast.
+  Vision Mode's fixed round above is a deliberate, one-time exception to
+  this "not an intake form" principle, justified by how much more the
+  Quest Brief shapes everything built afterward than any single Feature
+  Brief does.
 > Enforcement: agent-reviewed — the AI/Agents Guild's "Agent roles and
 > decision authority" is the backstop when Herald oversteps into deciding
-> something ambiguous instead of asking, in either mode.
+> something ambiguous instead of asking, in Feature Brief Mode. For
+> Vision Mode, the backstop is simpler: whether the intake round
+> actually happened before the Brief was drafted, checkable at Herald's
+> own Checkpoint (AI/Agents Guild, "Per-agent Checkpoints") by whether
+> the developer recalls being asked.
 
 ### `type` as a default to confirm, not a decision made from scratch
 The rule above reads as if Herald infers `type` fresh from the idea every
@@ -317,10 +373,10 @@ where the Product/Ideation Guild's own text still described `type` as
 decided from scratch, with no mention of the value `init` had already
 fixed earlier.
 - Herald treats an already-fixed `type` as a **default to confirm**
-  against the idea it's given, not a value to decide from scratch. If the
-  idea is consistent with the fixed `type`, Herald proceeds — a value
-  already existing is not, on its own, one of the "asks the developer
-  first" cases above.
+  against the idea it's given, not a value to decide from scratch —
+  surfaced as point 2 of Vision Mode's intake round above, not as a
+  separate question. If the idea and the developer's answer are
+  consistent with the fixed `type`, Herald proceeds.
 - If the idea conflicts with the fixed `type` (e.g. `.guildhall-lock.json`
   says `cli`, but the idea describes something with user accounts and a
   browser UI), Herald does not block and does not silently overrule
@@ -348,9 +404,10 @@ fixed earlier.
 > recorded conflict.
 
 ### When an idea (or a feature) is too vague to become a brief yet
-If, after asking the clarifying question above, the developer's answer is
-still too thin to fill in Problem/Scope/Acceptance criteria (Vision Mode)
-or Scope/Acceptance criteria/Edge cases (Feature Brief Mode) with anything
+If, after the intake round (Vision Mode) or the clarifying question
+(Feature Brief Mode) above, the developer's answers are still too thin
+to fill in Problem/Scope/Acceptance criteria (Vision Mode) or Scope/
+Acceptance criteria/Edge cases (Feature Brief Mode) with anything
 concrete — not merely missing the `type` value, but genuinely short on
 what the Quest or feature is for — Herald does not produce a brief anyway,
 padded with placeholder or generic content just to satisfy the format
@@ -450,18 +507,59 @@ rewrite before it's ever accepted — the same heuristic shape as the Code
 Style Guild's Portuguese-stopword scan and the Security Guild's
 `NEXT_PUBLIC_` name heuristic. It would catch the clearest cases without
 ever fully replacing a human or agent judging whether a criterion that
-*passes* the lexicon check is actually specific enough. The two rules
-governing when Herald asks the developer versus proceeds alone ("Herald's
-authority" and "When an idea (or a feature) is too vague") are poor
-maturity candidates by contrast — both depend on judging whether an idea
-or feature is ambiguous, the same kind of intent-reading the Architecture
-Guild's "stated deviation is actually justified" judgment depends on, and
-neither reduces to a mechanical check.
+*passes* the lexicon check is actually specific enough. "Herald's
+authority" (Feature Brief Mode's ambiguity trigger) and "When an idea (or
+a feature) is too vague" are poor maturity candidates by contrast — both
+depend on judging whether an idea or feature is ambiguous, the same kind
+of intent-reading the Architecture Guild's "stated deviation is actually
+justified" judgment depends on, and neither reduces to a mechanical
+check. "Vision Mode intake" is different in kind: whether all six points
+were *asked* is a mechanical presence check on the conversation, the same
+shape as the heading-presence checks above — a script could flag a Quest
+Brief written without a matching six-point intake round in the same
+session's transcript. It stays `agent-reviewed` for now only because no
+tooling yet inspects conversation transcripts the way it already inspects
+`docs/quest-brief.md` itself; whether the *answers* were used well is a
+separate, judgment-dependent question that stays agent-reviewed either
+way.
 
 ## Proposal log
 See the master spec, section 6.
 
 ## Changelog
+- **0.1.11** (2026-08-30) — "Vision Mode intake," point 5 ("Known
+  constraints") now explicitly calls out flagging a dependency on
+  another, not-yet-built application or service — the input the
+  Architecture Guild's new "External dependencies — mocking and the
+  integration contract" rule needs from Herald before Loremaster can
+  apply it. Cross-guild synchronization with that Guild's `0.1.11`.
+  Evidence: developer feedback that Quests depending on another unbuilt
+  application had no standard way to surface that dependency early,
+  2026-08-30.
+- **0.1.10** (2026-08-30) — Added "Vision Mode intake — a fixed round of
+  questions before drafting": `/quest-embark`'s Herald no longer defaults
+  to inferring the Quest Brief's content and asking only when something
+  is genuinely ambiguous. It now always asks a fixed, six-point round
+  (problem/audience, type, v1 boundaries, definition of done, known
+  constraints, explicit non-goals) before writing `docs/quest-brief.md`,
+  every time, regardless of how complete the original idea looks.
+  Reworked "Herald's authority: what it infers versus what it asks" to
+  scope its ambiguity-triggered "asks the developer first" model to
+  Feature Brief Mode only, since Vision Mode's version of that question
+  is now the fixed round instead. Updated "`type` as a default to
+  confirm" and "When an idea (or a feature) is too vague to become a
+  brief yet" to reference the new round instead of a single clarifying
+  question for Vision Mode. Feature Brief Mode (`/quest-forge`) is
+  unchanged — it keeps the original ambiguity-triggered, one-question
+  model. Evidence: developer feedback that Herald's agents in
+  `/quest-embark` were deciding too much unilaterally and the resulting
+  Quest Brief sometimes didn't reflect what was actually wanted,
+  2026-08-30. Two enforcement notes in "Vision Mode intake" and "Herald's
+  authority" were re-pointed the same day, cross-guild-synchronized with
+  the AI/Agents Guild's new "Per-agent Checkpoints" (`0.1.9`): "checkable
+  at `/quest-embark`'s Checkpoint" now reads "checkable at Herald's own
+  Checkpoint," since that Guild's rule replaced the single combined
+  Brief+architecture Checkpoint this text originally assumed.
 - **0.1.9** (2026-08-26) — Reworked this Guild for the AI/Agents Guild's
   new three-phase orchestration model (`/quest-embark`, `/quest-forge
   <feature>`, `/quest-ship`, replacing the retired linear flow — see

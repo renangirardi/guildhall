@@ -7,15 +7,21 @@ description: >-
   `docs/feature-backlog.md` entry or a feature described fresh that was
   never in the backlog — the second of three Quest-phase skills
   (AI/Agents Guild, "Orchestration model — three Quest-phase skills").
-  Requires `.quest-progress.json`'s `foundation` to already be `done`;
-  if it isn't, this skill says so and tells the developer to run
+  Each of those four agents gets its own human Checkpoint immediately
+  after it finishes, including every pass through the Artificer/
+  Sentinel/Warden fix-retry cycle if Warden flags something (AI/Agents
+  Guild, "Per-agent Checkpoints") — this skill no longer chains the four
+  agents straight through to a single end-of-turn report. Requires
+  `.quest-progress.json`'s `foundation` to already be `done`; if it
+  isn't, this skill says so and tells the developer to run
   `/quest-embark` first instead of guessing at a Brief or architecture
   that doesn't exist yet. Appends a new entry to `.quest-progress.json`'s
-  `features` array and updates the matching `docs/feature-backlog.md`
-  status. Ends the turn presenting the result — no new pause mechanism;
-  resuming mid-feature, or forging the next one, is the developer's next
-  message. Do not use it to establish the Quest's foundation (that's
-  `/quest-embark`) or to deploy (that's `/quest-ship`).
+  `features` array, with a `steps` object per agent, and updates the
+  matching `docs/feature-backlog.md` status. Ends the turn at every
+  Checkpoint — no new pause mechanism; resuming mid-feature, or forging
+  the next one, is the developer's next message. Do not use it to
+  establish the Quest's foundation (that's `/quest-embark`) or to deploy
+  (that's `/quest-ship`).
 argument-hint: "<feature name or slug — from docs/feature-backlog.md, or a new one>"
 ---
 
@@ -33,13 +39,19 @@ Orchestrates the second of three Quest-phase skills (AI/Agents Guild,
 testing, and reviewing exactly one feature, end to end, then stopping.
 Sequence:
 ```
-Herald, Feature Brief Mode → Artificer → Sentinel → Warden →
-present result
+Herald, Feature Brief Mode → Checkpoint → Artificer → Checkpoint →
+Sentinel → Checkpoint → Warden → Checkpoint → present result
 ```
-No Checkpoint lives inside this skill — a feature's review is Warden's
-job, not a human pause (AI/Agents Guild, same section). The developer
-sees the result at the end of this skill's turn and decides what to do
-next: forge another feature, or run `/quest-ship` to publish what's
+Every Checkpoint above is a full stop (AI/Agents Guild, "Per-agent
+Checkpoints") — this skill used to run all four agents straight through
+to a single end-of-turn report; it no longer does. If Warden flags
+something, the resulting fix-retry cycle (Artificer → Sentinel → Warden
+again) gets the same treatment: a Checkpoint after each of those steps
+too, not an unattended loop that only surfaces once Warden comes back
+clean. The developer sees each agent's result as it happens and decides,
+at every Checkpoint, whether to approve moving on or to send the flow
+back a step — and, once the feature's own last Checkpoint clears,
+whether to forge another feature or run `/quest-ship` to publish what's
 ready.
 
 **Known gap this skill inherits**: same as `/quest-embark` — the
@@ -60,10 +72,15 @@ rather than guessing.
 
 ## Before anything else: is the foundation actually done?
 Read `.quest-progress.json`. If it's missing, or `foundation.status`
-isn't `done`, or `foundation.checkpoint` isn't `approved`, **stop
-immediately** and tell the developer to run `/quest-embark` first — do
-not attempt to infer a Quest Brief, an architecture, or a feature
-backlog that was never actually produced. This is not a judgment call:
+isn't `done`, **stop immediately** and tell the developer to run
+`/quest-embark` first — do not attempt to infer a Quest Brief, an
+architecture, or a feature backlog that was never actually produced.
+`foundation.status` only reaches `done` once every one of its `steps`
+entries is itself `{ "status": "done", "checkpoint": "approved" }`
+(AI/Agents Guild, "`.quest-progress.json` — schema for the three-phase
+model"), so this single check already covers Herald's, Loremaster's, and
+Artificer's Checkpoints — no separate check needed here. This is not a
+judgment call:
 Feature Brief Mode's own Guild rule assumes `type` and the architecture
 are already settled (Product/Ideation Guild, "`type` as a default to
 confirm ... this rule is Vision-Mode-only"; Architecture Guild,
@@ -97,60 +114,132 @@ questions/assumptions ("Feature Brief format — Feature Brief Mode's
 output") — covering *only* this feature, nothing else in the backlog.
 If the feature was new (not previously in the backlog), Herald adds it
 there now, `status: in-progress`. If it already existed as `planned`,
-update its status to `in-progress` in `docs/feature-backlog.md` and add
-a new entry to `.quest-progress.json`'s `features` array:
+update its status to `in-progress` in `docs/feature-backlog.md`. If this
+is the first agent invoked for this feature, add a new entry to
+`.quest-progress.json`'s `features` array:
 ```json
 {
   "slug": "<slug>",
   "brief": "docs/features/<slug>.md",
   "status": "in-progress",
-  "forgedAt": "<now, ISO 8601>"
+  "forgedAt": "<now, ISO 8601>",
+  "steps": {
+    "herald": { "status": "done", "checkpoint": "pending" },
+    "artificer": { "status": "pending", "checkpoint": "pending" },
+    "sentinel": { "status": "pending", "checkpoint": "pending" },
+    "warden": { "status": "pending", "checkpoint": "pending" }
+  }
 }
 ```
 per the AI/Agents Guild's `.quest-progress.json` schema. Write the
-progress file before proceeding.
+progress file, then proceed to Herald's own Checkpoint below — do not
+proceed to Artificer in the same reply.
 
-**Artificer — implementation.** Delegate to `artificer`, pointed at the
-Feature Brief just written, `docs/architecture.md`, and
-`docs/quest-brief.md` for overall context. Same lib-first-then-UI split
-within the feature the Architecture Guild already requires —
-Artificer's own template enforces this; you don't need to police it.
+**Checkpoint (Herald).** Present a short summary of
+`docs/features/<slug>.md` (point at the file, don't re-paste it), flag
+anything Herald logged under "Open questions / assumptions", note this
+feature's `steps.herald.checkpoint` as `pending`, write the progress
+file, and **end your turn**. On the developer's next message: if they
+approve, set that field to `approved` and proceed to Artificer in the
+same reply; if they ask for changes, route back to Herald and leave the
+Checkpoint unresolved.
 
-**Sentinel — tests.** Delegate to `sentinel` once Artificer confirms
-the feature is implemented, pointed at this feature's code and its
-Feature Brief's acceptance criteria and edge cases.
+**Artificer — implementation.** Delegate to `artificer`, only after
+Herald's Checkpoint above is `approved`, pointed at the Feature Brief
+just written, `docs/architecture.md`, and `docs/quest-brief.md` for
+overall context. Same lib-first-then-UI split within the feature the
+Architecture Guild already requires — Artificer's own template enforces
+this; you don't need to police it. On completion, set this feature's
+`steps.artificer.status` to `done`, write the progress file, and proceed
+to Artificer's own Checkpoint below.
 
-**Warden — review.** Delegate to `warden`. This is the mandatory review
-step for this feature — there is no human Checkpoint inside
-`/quest-forge`, so Warden's report is the closest thing this feature
-gets to a gate before the next `/quest-ship` run. If Warden flags
-anything, route back through Artificer (fix) → Sentinel (tests for the
-fix, if needed) → **Warden again** — same fix-cycle discipline the
-retired `/quest-flow` skill used at its step-9 Checkpoint, just without
-a human in the loop at this stage.
+**Checkpoint (Artificer).** Present a short summary of what Artificer
+implemented (point at the actual files changed, don't re-paste them),
+note `steps.artificer.checkpoint` as `pending`, write the progress file,
+and **end your turn**. On the developer's next message: if they approve,
+set that field to `approved` and proceed to Sentinel in the same reply;
+if they ask for changes, route back to Artificer and leave the
+Checkpoint unresolved.
 
-**Record completion.** Once Warden's review is clean (or the developer
-explicitly accepts flagged items as-is — state that explicitly if so),
-set this feature's `.quest-progress.json` entry `status` to `done`, and
-update its `docs/feature-backlog.md` entry to `status: done`. Write the
-progress file.
+**Sentinel — tests.** Delegate to `sentinel`, only after Artificer's
+Checkpoint above is `approved`, pointed at this feature's code and its
+Feature Brief's acceptance criteria and edge cases. On completion, set
+`steps.sentinel.status` to `done`, write the progress file, and proceed
+to Sentinel's own Checkpoint below.
+
+**Checkpoint (Sentinel).** Present a short summary of what Sentinel
+tested and the result (point at the test files, don't re-paste them),
+note `steps.sentinel.checkpoint` as `pending`, write the progress file,
+and **end your turn**. On the developer's next message: if they approve,
+set that field to `approved` and proceed to Warden in the same reply; if
+they ask for changes, route back to Sentinel (or to Artificer first, if
+the requested change is actually an implementation fix) and leave the
+Checkpoint unresolved.
+
+**Warden — review.** Delegate to `warden`, only after Sentinel's
+Checkpoint above is `approved`. This is the mandatory review step for
+this feature — Warden's report, plus the developer's own Checkpoint
+reviewing it, is the closest thing this feature gets to a gate before
+the next `/quest-ship` run. On completion, set `steps.warden.status` to
+`done`, write the progress file, and proceed to Warden's own Checkpoint
+below.
+
+**Checkpoint (Warden).** Present Warden's findings in full — even (and
+especially) when it flagged something — note `steps.warden.checkpoint`
+as `pending`, write the progress file, and **end your turn**. On the
+developer's next message, exactly one of:
+- **Warden's review was clean, and the developer approves** → set
+  `steps.warden.checkpoint` to `approved`, and proceed to "Record
+  completion" below in the same reply.
+- **Warden flagged something, and the developer wants it fixed** → set
+  `steps.warden.checkpoint` to `approved` (the developer has reviewed
+  and agreed with the finding — this Checkpoint's job is done; the fix
+  itself is new work), reset `steps.artificer`, `steps.sentinel`, and
+  `steps.warden` to `{ "status": "pending", "checkpoint": "pending" }`
+  (Warden included — it hasn't re-reviewed anything yet), write the
+  progress file, and re-enter the cycle at Artificer (fix) → its own
+  Checkpoint → Sentinel (re-test) → its own Checkpoint → Warden
+  (re-review) → its own Checkpoint — same fix-cycle discipline the
+  retired `/quest-flow` skill used at its step-9 Checkpoint, now with a
+  human Checkpoint after every step of the retry too, not just the first
+  pass (AI/Agents Guild, "Per-agent Checkpoints": "each step's own
+  state, not a retry history" — these resets overwrite the prior pass's
+  recorded state rather than appending a new one).
+- **The developer explicitly accepts a flagged item as-is** → state that
+  explicitly in the progress file's note (or equivalent), set
+  `steps.warden.checkpoint` to `approved`, and proceed to "Record
+  completion" below — an accepted flag is not the same as a fix, and
+  does not re-enter the cycle.
+
+**Record completion.** Once Warden's Checkpoint clears (clean-and-
+approved, or explicitly-accepted-as-is — never merely "Warden's review
+came back"), set this feature's `.quest-progress.json` entry `status` to
+`done`, and update its `docs/feature-backlog.md` entry to `status:
+done`. Write the progress file.
 
 ## Ending the turn
-This skill introduces no new pause mechanism (AI/Agents Guild,
-"Orchestration model — three Quest-phase skills"): once Warden's review
-is in and the feature's status is recorded, present the result — what
-was built, tested, and found — and end your turn. Resuming mid-feature
-(e.g. if Artificer's implementation spans multiple sessions) follows
-the same "Resuming" discipline `/quest-embark` and the retired
-`/quest-flow` skill both use: re-read `.quest-progress.json`, find this
-feature's entry, and continue from whatever it says rather than
-re-deriving what's left from conversation memory.
+This skill introduces no new pause *mechanism* (AI/Agents Guild,
+"Orchestration model — three Quest-phase skills") — every Checkpoint
+above is the same "present, then end the turn" pattern — but it now
+applies after each of the four agents (and after each pass through the
+fix-retry cycle), not once at the very end. Resuming mid-feature (e.g.
+if Artificer's implementation spans multiple sessions, or a Checkpoint
+is still pending) follows the same "Resuming" discipline `/quest-embark`
+uses: re-read `.quest-progress.json`, find this feature's entry, locate
+the first `steps.<agent>` that isn't `{ "status": "done", "checkpoint":
+"approved" }`, and continue exactly there — delegating to that agent if
+its `status` is still `pending`, or re-presenting its already-finished
+output fresh (per `/quest-embark`'s same "a `/clear` or a new session
+wipes the developer's context too" caution) if its `status` is `done`
+but its `checkpoint` is still `pending` — rather than re-deriving what's
+left from conversation memory.
 
 ## Respecting gates that live inside the subagents
-Same rule as `/quest-embark`: this skill adds no gate of its own beyond
-the mandatory Warden review above. It never routes around a subagent's
-own `agent-recommended, human-confirmed` gate — if one fires, let the
-turn end there and record state in `.quest-progress.json`.
+Same rule as `/quest-embark`: this skill's own gates are the per-agent
+Checkpoints above (including every pass through the fix-retry cycle). It
+never routes around a subagent's own `agent-recommended, human-confirmed`
+gate — if one fires, let the turn end there and record state in
+`.quest-progress.json`.
 
 ## Before you finish (any step, any turn)
 1. Write `.quest-progress.json` with the current state before ending

@@ -186,6 +186,96 @@ for what favoring extensibility means concretely for data-model choices.
 > Enforcement: agent-reviewed — see the AI/Agents Guild's "Agent roles
 > and decision authority" for the Architect's authority boundary.
 
+### External dependencies — mocking and the integration contract
+A Quest sometimes depends on another application or service that does
+not exist yet — the canonical case is a frontend Quest that needs a
+backend API nobody has built, but the same shape applies to an API
+Quest calling another API, or a CLI Quest calling a service — the
+mechanism below is the same regardless of which side of the dependency
+this Quest is on. Herald surfaces this at `/quest-embark`'s intake round
+(Product/Ideation Guild, "Vision Mode intake," point 5, "Known
+constraints") when the developer states it up front; Loremaster is the
+one who decides what to do about it, the same authority split
+"Persistence decisions" above already uses for the Data Guild.
+
+**Why this can't wait for the dependency to exist**: this Guild already
+requires favoring extensibility over information that doesn't exist yet
+at `/quest-embark` ("Extensibility over premature optimization" above).
+A Quest that can't even run locally until a second, unbuilt application
+is finished violates that principle at the most basic level — the
+developer can't test *anything* until both halves exist. Mocking the
+dependency is what keeps this Quest independently runnable and testable
+the whole time the other one doesn't exist yet.
+
+**Default mocking strategy — static fixtures, not network
+interception**:
+- Fixture data lives at `mocks/`, a single top-level directory at the
+  Quest root — not nested inside `/lib` or `/app` — so a human looking
+  for "what data is this thing pretending to have" finds it in one
+  obvious place without hunting. Plain JSON or TypeScript modules, no
+  mock server process to run alongside the Quest.
+- A thin data-access wrapper in `/lib` (this Guild's existing pure-logic
+  layer) is what actually reads `mocks/` — real UI or API-route code
+  never imports from `mocks/` directly, the same layering discipline
+  "Separation of concerns" above already requires for business logic
+  generally. The wrapper switches between fixture data and a real
+  network call based on whether the dependency's base URL is configured
+  (via `.env.example`, per the Ops/Infra Guild's existing convention) —
+  mocks are the fallback for a dependency that isn't reachable yet, not
+  a second permanent code path maintained forever alongside the real one.
+- **Why fixtures over a network-interception library** (e.g. MSW): this
+  Guild already defaults to the least machinery that solves the problem
+  — no separate backend service unless justified ("Default stack"
+  above), Next.js API Routes over a standalone service by default. A
+  personal-scale Quest's dependency needs are almost always representable
+  as static request/response pairs; a library that intercepts real
+  network calls solves a harder problem (streaming responses, stateful
+  interaction sequences) most Quests don't have. Needing one anyway is a
+  stated-reason deviation from this default — same "stated reason, not
+  silent default" pattern as "Default stack" — flagged explicitly at
+  Loremaster's own Checkpoint (AI/Agents Guild, "Per-agent Checkpoints"),
+  not chosen silently.
+
+**The integration contract — `docs/integration-contract.md`**: documents
+exactly what the other application must implement for this Quest to run
+against the real thing instead of `mocks/`. Written incrementally, the
+same "deliberately incomplete at first" discipline `docs/
+feature-backlog.md` already uses:
+- **Skeleton, at `/quest-embark`** — Loremaster creates the file with a
+  title, a one-paragraph statement of why this Quest depends on the
+  other one (adapted from the Quest Brief), and an empty running list of
+  required operations. Nothing more — the concrete operations aren't
+  known until specific features are forged, same reason
+  `docs/architecture.md` itself favors extensibility over deciding
+  things this early.
+- **Filled in per feature, at `/quest-forge`** — Artificer adds an entry
+  each time a feature it's implementing needs something from the
+  dependency it hasn't documented yet: what the operation is for, its
+  exact request/response shape, error cases, and any auth or header
+  assumption. This entry is written from the *same* shape as the
+  fixture data Artificer adds to `mocks/` for that feature — the fixture
+  is the executable version of what the contract entry describes, and
+  the two must never drift apart. Warden's review (Testing/QA and
+  Security checklist, per feature) checks this: a feature that touches
+  the dependency but only updated one of the two is incomplete, the same
+  as a feature missing required test coverage.
+- **Written for a future `/quest-embark`, not just as a spec** — each
+  entry gives enough context (what the operation is *for*, not only its
+  shape) that a developer could hand this file to Herald as the "idea"
+  input when they later start a Quest for the dependency itself, and
+  Herald's intake round would mostly be confirming what the contract
+  already states rather than starting from nothing. A bare
+  OpenAPI-style stub with no surrounding context does not satisfy this —
+  the contract is meant to bootstrap a Quest Brief, not just describe an
+  interface.
+> Enforcement: automated (custom) — a scaffold-time script checks
+> `mocks/` and `docs/integration-contract.md` exist when Herald's intake
+> flagged an external dependency, the same shape as the "Folder
+> structure" check above. Whether a given fixture and its matching
+> contract entry actually describe the same shape is agent-reviewed —
+> Warden's per-feature check is the backstop, same posture as every
+> other Warden-enforced rule this Guild doesn't automate directly.
+
 ## Out of scope
 
 **Real gap, not a conscious decision:** the manifest lists this Guild as
@@ -215,6 +305,11 @@ covered:
 - **API contract conventions beyond "use Next.js API Routes"** (REST
   resource naming, versioning, GraphQL, tRPC) — this Guild defines
   *where* server-side logic lives, not the shape of the contract itself.
+  "External dependencies — mocking and the integration contract" above
+  narrows this only for the specific case of *another, unbuilt* Quest
+  this one depends on — it does not define conventions for the shape of
+  an API this Quest itself exposes to others, which stays out of scope
+  here.
 - **UI component/design system standard** — the UX/Frontend Guild is now
   active and has answered this: a design system stays deliberately out of
   its own scope too, starting with tokens only until a component repeats
@@ -248,6 +343,25 @@ and reviewed via the `review-proposals` CLI command. See the master spec,
 section 6.
 
 ## Changelog
+- **0.1.11** (2026-08-30) — Added "External dependencies — mocking and
+  the integration contract": when a Quest depends on another
+  application or service that doesn't exist yet (any direction — a
+  frontend needing a backend, an API needing another API, a CLI needing
+  a service), Loremaster decides the mocking strategy at `/quest-embark`
+  the same way it already decides persistence. Default strategy is
+  static fixtures at `mocks/` behind a thin `/lib` data-access wrapper,
+  not a network-interception library — a stated-reason deviation, same
+  pattern as "Default stack." Introduces `docs/integration-contract.md`,
+  written incrementally (a skeleton at `/quest-embark`, filled in per
+  feature at `/quest-forge` by Artificer, kept in sync with `mocks/` and
+  checked by Warden) and deliberately formatted to double as a ready
+  input for a future `/quest-embark` on the dependency itself. Updated
+  "Out of scope" 's "API contract conventions" bullet to note this new
+  rule narrows it only for the cross-Quest-dependency case, not this
+  Quest's own exposed API shape. Evidence: developer feedback that
+  Quests depending on another unbuilt application had no standard way to
+  stay independently testable, and no standard way to hand the
+  dependency's requirements to whoever builds it next, 2026-08-30.
 - **0.1.10** (2026-08-26) — Added "Extensibility over premature
   optimization at `/quest-embark`": architecture is now designed once,
   before any feature has a Feature Brief (AI/Agents Guild's

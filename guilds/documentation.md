@@ -39,7 +39,14 @@ line):
    README is not a second copy that can drift out of sync with it.
 3. **Getting started** — prerequisites, install command, required
    environment variables (referencing `.env.example`, per the Ops/Infra
-   Guild), and the command to run the Quest locally.
+   Guild), and the command to run the Quest locally. When this Quest
+   depends on another application that doesn't exist yet, this section
+   also says so plainly and points at `mocks/` and
+   `docs/integration-contract.md` (Architecture Guild, "External
+   dependencies — mocking and the integration contract") — a developer
+   running this Quest for the first time needs to know upfront that
+   they're looking at fixture data, not a second copy of what those
+   files already explain in full.
 4. **Available scripts** — the lint, test, and build commands (Code
    Style and Testing/QA Guilds), so a reader doesn't have to open
    `package.json` to find them.
@@ -287,6 +294,15 @@ compatibility judgment does.
 See the master spec, section 6.
 
 ## Changelog
+- **0.1.12** (2026-08-30) — "README format," "Getting started," now
+  notes when this Quest depends on another not-yet-built application,
+  pointing at `mocks/` and `docs/integration-contract.md` rather than
+  restating them — cross-guild synchronization with the Architecture
+  Guild's new "External dependencies — mocking and the integration
+  contract" (`0.1.11`). Evidence: developer feedback that Quests
+  depending on another unbuilt application had no standard way to
+  surface that to a developer running the Quest for the first time,
+  2026-08-30.
 - **0.1.11** (2026-08-26) — Added "Incremental updates — Scribe's cadence
   at `/quest-ship`": since `/quest-ship` is repeatable and on-demand
   (AI/Agents Guild's three-phase orchestration model —

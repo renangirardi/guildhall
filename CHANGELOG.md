@@ -11,6 +11,147 @@ own `package.json` `version` is noted in that entry — it is a third,
 independent number from the two above, since `package.json` versions the
 npm package/CLI tool, not any Guild or agent-template content.
 
+## [0.1.14] - 2026-08-30
+
+### Changed
+- **Architecture Guild** (`0.1.10` → `0.1.11`) — added "External
+  dependencies — mocking and the integration contract": when a Quest
+  depends on another application or service that doesn't exist yet
+  (any direction — a frontend needing a backend, an API needing another
+  API, a CLI needing a service), Loremaster decides the mocking strategy
+  at `/quest-embark`, the same authority split "Persistence decisions"
+  already uses for the Data Guild. Default strategy is static fixtures
+  at `mocks/` (Quest root) behind a thin `/lib` data-access wrapper that
+  switches to a real network call once the dependency's base URL is
+  configured — not a network-interception library, which is a
+  stated-reason deviation from the default, same pattern as "Default
+  stack." Introduces `docs/integration-contract.md`: a skeleton written
+  by Loremaster at `/quest-embark`, filled in incrementally by Artificer
+  per feature at `/quest-forge` (one entry per operation the feature
+  needs from the dependency, written from the same shape as that
+  feature's fixture data, kept in sync by Warden's per-feature check),
+  and deliberately formatted to double as a ready-made "idea" input for
+  a future `/quest-embark` on the dependency itself. Updated "Out of
+  scope" 's "API contract conventions" bullet to note the new rule only
+  narrows the cross-Quest-dependency case, not this Quest's own exposed
+  API shape.
+- **AI/Agents Guild** (`0.1.9` → `0.1.10`) — "Standard agent output
+  locations" gained rows for `docs/integration-contract.md` (Loremaster,
+  skeleton) and `mocks/` plus incremental contract entries (Artificer,
+  scaffold + per-feature) — both conditional on Herald having flagged an
+  external dependency. "Agent roles and decision authority" 's Architect
+  row now names the mocking-strategy decision explicitly, with the same
+  deviation-flagging treatment as the default stack.
+- **Product/Ideation Guild** (`0.1.10` → `0.1.11`) — "Vision Mode
+  intake," point 5 ("Known constraints"), now explicitly asks whether
+  this Quest depends on another, not-yet-built application or service —
+  the input the Architecture Guild's new rule needs from Herald before
+  Loremaster can apply it.
+- **Documentation Guild** (`0.1.11` → `0.1.12`) — "README format,"
+  "Getting started," now notes when a Quest depends on another
+  not-yet-built application, pointing at `mocks/` and
+  `docs/integration-contract.md` instead of restating them.
+
+No agent-template or skill change in this entry — Loremaster and
+Artificer already read the Architecture Guild in full before acting
+(same as how they already pick up "Persistence decisions" without
+`/quest-embark`'s `SKILL.md` needing to call it out specifically), so
+`agentTemplatesVersion` (`templates/manifest.json`) is untouched at
+`0.1.3`, and so is `package.json`.
+
+Evidence: developer feedback that a Quest depending on another, not-yet-
+built application had no standard way to stay independently testable in
+the meantime, and no standard way to hand that dependency's requirements
+to whoever builds it next, 2026-08-30.
+
+## [0.1.13] - 2026-08-30
+
+### Changed
+- **AI/Agents Guild** (`0.1.8` → `0.1.9`) — added "Per-agent Checkpoints
+  — a human approval after every step, in every skill": a Checkpoint now
+  follows every named agent's completed work in all three Quest-phase
+  skills, with no exceptions — every agent handoff (including
+  Herald → Loremaster and Loremaster → Artificer inside `/quest-embark`,
+  which previously ran straight through to one combined Checkpoint), the
+  `/quest-forge` fix-retry cycle after a flagged Warden review (a
+  Checkpoint after each pass through Artificer/Sentinel/Warden, not an
+  unattended loop), and the last agent in each skill (which previously
+  ended the skill's turn without a dedicated approval of its own — a
+  phase/feature/deploy's `status` now only reaches `done` once that last
+  Checkpoint is actually approved). Retires the old combined Quest Brief
+  + architecture Checkpoint at the end of `/quest-embark` in favor of two
+  separate ones (after Herald, after Loremaster); `/quest-ship`'s
+  pre-deploy scope Checkpoint is unchanged and now sits alongside two new
+  ones, after Quartermaster and after Scribe. Reworked "Orchestration
+  model" 's per-skill bullets and its Checkpoint-count paragraph to point
+  at the new rule instead of describing "two kinds of point." Reworked
+  "`.quest-progress.json` — schema for the three-phase model"
+  (`version` `"2.0"` → `"3.0"`): `foundation`, every `features[]` entry,
+  and every `deploys[]` entry now carry a `steps` object tracking each
+  involved agent's own `status`/`checkpoint` individually; a phase's or
+  feature's overall `status` only reaches `done` once every one of its
+  `steps` entries does, and a fix-retry cycle overwrites the previous
+  pass's recorded state rather than accumulating a per-attempt history.
+  See `guilds/ai-agents.md`.
+- **`templates/claude/skills/quest-embark/SKILL.md`,
+  `quest-forge/SKILL.md`, `quest-ship/SKILL.md`**
+  (`agentTemplatesVersion` `0.1.2` → `0.1.3`) — all three rewritten to
+  insert an explicit Checkpoint after every agent they orchestrate
+  (`quest-embark`: after Herald, after Loremaster, after Artificer;
+  `quest-forge`: after Herald, after Artificer, after Sentinel, after
+  Warden, including every pass through the fix-retry cycle;
+  `quest-ship`: after Quartermaster, after Scribe, alongside the
+  unchanged pre-deploy scope Checkpoint). "Resuming" logic in all three
+  now locates the first `steps.<agent>` entry that isn't `{ "status":
+  "done", "checkpoint": "approved" }` and resumes exactly there, instead
+  of the old single-phase-level `checkpoint` field check.
+- **`guilds/product-ideation.md`** — small precision fix, cross-guild-
+  synchronized with the above (folded into the existing `0.1.10`
+  changelog entry rather than a new version bump): two enforcement notes
+  in "Vision Mode intake" and "Herald's authority" that said "checkable
+  at `/quest-embark`'s Checkpoint" now say "checkable at Herald's own
+  Checkpoint," since the combined Checkpoint they originally referenced
+  no longer exists.
+
+Evidence: developer feedback that agent reports were getting lost in a
+large conversation because the next agent had already started acting on
+one before a human had a real chance to read it, 2026-08-30.
+
+## [0.1.12] - 2026-08-30
+
+### Changed
+- **Product/Ideation Guild** (`0.1.9` → `0.1.10`) — added "Vision Mode
+  intake — a fixed round of questions before drafting": `/quest-embark`'s
+  Herald no longer infers the Quest Brief's content by default and asks
+  only when something is genuinely ambiguous. It now always asks the
+  developer a fixed, six-point round (problem/audience, type, v1
+  boundaries, definition of done, known constraints, explicit non-goals)
+  as a single short numbered list before writing `docs/quest-brief.md` or
+  `docs/feature-backlog.md`, every time, regardless of how complete the
+  original idea looks. "Herald's authority: what it infers versus what it
+  asks" was reworked so its ambiguity-triggered "asks the developer first"
+  model now scopes to **Feature Brief Mode only** (`/quest-forge`, which
+  is unchanged); "`type` as a default to confirm" and "When an idea (or a
+  feature) is too vague to become a brief yet" were updated to reference
+  the new round for Vision Mode instead of a single clarifying question.
+  See `guilds/product-ideation.md`.
+- **`templates/claude/skills/quest-embark/SKILL.md`**
+  (`agentTemplatesVersion` `0.1.1` → `0.1.2`) — Herald's delegation brief
+  now explicitly instructs the subagent to run the Guild's new Vision Mode
+  intake round and end the turn waiting for the developer's answers before
+  drafting anything, the same "brief the subagent with current-model
+  terms at delegation time" pattern this skill already uses to work around
+  `herald.md` not yet being rewritten for the three-phase model (its own
+  text still says "never a full intake form," which this delegation brief
+  now overrides for Vision Mode specifically). "How the Checkpoint
+  actually 'pauses'" and "Resuming" were both updated to cover this
+  turn-ending wait as the same no-special-mechanism pattern used
+  elsewhere in this skill, one step earlier than the Checkpoint itself.
+
+Evidence: developer feedback that Herald's agents in `/quest-embark` were
+deciding too much unilaterally and the resulting Quest Brief sometimes
+didn't reflect what was actually wanted, 2026-08-30.
+
 ## [agentTemplatesVersion 0.1.1 / cli 0.3.0] - 2026-08-26
 This entry doesn't bump `guildhallVersion` (`guilds/manifest.json` stays
 at `0.1.11`, unchanged) — it's the first entry in this file that's

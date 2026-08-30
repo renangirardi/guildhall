@@ -34,57 +34,144 @@ file's own `name:` frontmatter field — the same rule the retired
   is *deliberately* incomplete (it states the app's vision, not every
   feature in detail) plus a loose backlog of candidate features at
   `docs/feature-backlog.md` (each entry tagged `planned` / `in-progress`
-  / `done`); Loremaster designs the architecture; a human Checkpoint
-  approves both; Artificer scaffolds the repository (structure, CI/CD,
-  base config). Ends with a Quest ready to receive features, not a Quest
-  with every feature already planned in detail.
+  / `done`); Loremaster designs the architecture; Artificer scaffolds the
+  repository (structure, CI/CD, base config). A human Checkpoint follows
+  every one of those three agents, not just Loremaster's — see "Per-agent
+  Checkpoints" below. Ends with a Quest ready to receive features, not a
+  Quest with every feature already planned in detail.
 - **`/quest-forge <feature>`** — repeatable, once per feature, as many
   times as the backlog needs. Herald writes a Feature Brief for *only*
   that feature at `docs/features/<slug>.md` — a file that does not exist
   before this invocation; Artificer implements it; Sentinel tests it;
   Warden reviews it. Ends the turn presenting the result. This
-  introduces no new pause mechanism — it reuses the principle the
+  introduces no new pause *mechanism* — it reuses the principle the
   retired `/quest-flow` skill already established: the skill ends its
   turn, and resuming is the developer sending the next message, not any
-  kind of callback, poll, or background process.
+  kind of callback, poll, or background process — but it now applies that
+  mechanism after every one of those four agents, not just at the very
+  end (see "Per-agent Checkpoints" below).
 - **`/quest-ship`** — repeatable, on demand. Does not wait for the whole
   backlog to reach `done`; it publishes whatever is ready as of that
   invocation. Each run: a Checkpoint reviews everything built since the
-  last deploy, Quartermaster deploys and monitors, and Scribe writes an
-  *incremental* documentation update — never a single "final
-  documentation" pass, since further `/quest-ship` runs may still follow.
+  last deploy and decides the deploy's scope *before* any agent acts,
+  Quartermaster deploys and monitors, and Scribe writes an *incremental*
+  documentation update — never a single "final documentation" pass, since
+  further `/quest-ship` runs may still follow. Quartermaster and Scribe
+  each get their own Checkpoint too, once their work is done (below) —
+  distinct from the pre-deploy one, which reviews scope before either of
+  them has run.
 
-**The human Checkpoint now happens at two kinds of point, not two fixed
-steps in one sequence**: once at the end of `/quest-embark` (approving
-the Quest Brief and the architecture), and again *every time*
-`/quest-ship` runs (reviewing what that specific run is about to
-publish). Because `/quest-ship` is repeatable and on-demand, this second
-kind of Checkpoint can happen several times over a single Quest's
-lifetime — it is not a one-time gate the way the old step-9 Checkpoint
-was. No Checkpoint exists inside `/quest-forge`; a feature's review is
-Warden's job, not a human pause — consistent with that skill ending its
-turn without introducing any new pause mechanism (above).
-> Enforcement: agent-reviewed — a script can check that a Checkpoint's
-> status was actually set to `approved` before the next phase proceeds
-> (see the `.quest-progress.json` schema below, which carries the same
-> "never inferred from silence" rule the retired schema had), but
-> recognizing that a `/quest-ship` run's Checkpoint must be re-run every
-> single time, not just the first, is a judgment call a tired or eager
-> agent could get wrong.
+**The human Checkpoint now happens after every agent's own step, in every
+one of the three skills** — not at two fixed points the way the retired
+step-9-and-only-step-9 model worked, and not at the two *kinds* of point
+this Guild described in an earlier revision (end of `/quest-embark`,
+every `/quest-ship` run). That description undercounted: every agent
+invocation across all three skills gets its own Checkpoint now. See "Per-
+agent Checkpoints" immediately below for the rule itself; this paragraph
+only exists so a reader who remembers the old two-point description knows
+it's superseded, not to restate the rule twice.
+
+### Per-agent Checkpoints — a human approval after every step, in every skill
+Before this rule, an agent finishing its work and handing off to the next
+one happened automatically inside a skill invocation — only
+`/quest-embark`'s combined Brief+architecture review and `/quest-ship`'s
+pre-deploy scope review paused for a human at all; `/quest-forge` never
+did. In practice this meant several agents' reports could go by inside a
+single long turn, with the next agent already acting on the previous
+one's output before a human had a real chance to read it — a report
+"getting lost" in a large conversation instead of getting reviewed.
+Evidence: developer feedback, 2026-08-30.
+
+**The rule**: whenever *any* named agent (Herald, Loremaster, Artificer,
+Sentinel, Warden, Quartermaster, Scribe) finishes its work and produces
+its report or output, in *any* of the three Quest-phase skills, the
+orchestrating skill presents that report and **ends its turn** — the
+same no-pause-primitive mechanism every Checkpoint in this project has
+always used (a plain instruction to stop and wait, nothing else). It does
+not hand off to whatever agent would run next, and it does not advance
+that phase's/feature's/deploy's `status` past what that agent just
+completed, until the developer's next message approves it. This applies
+with no exceptions:
+- **Every handoff between agents**, in every skill — Herald → Loremaster,
+  Loremaster → Artificer, Herald → Artificer → Sentinel → Warden, and
+  Quartermaster → Scribe all now pause where they previously ran straight
+  through.
+- **The fix-retry cycle inside `/quest-forge`**: when Warden flags
+  something, the resulting Artificer (fix) → Sentinel (re-test) → Warden
+  (re-review) cycle gets a Checkpoint after each of those steps too, the
+  same as the first pass — not a special unattended loop. A feature can
+  legitimately pass through several Checkpoints before Warden's review
+  comes back clean.
+- **The last agent in a skill**: Artificer's scaffold (`/quest-embark`),
+  Warden's review (`/quest-forge`), and Scribe's update (`/quest-ship`)
+  each still get an explicit Checkpoint of their own. A phase's, feature's,
+  or deploy's `status` only becomes `done` once that last Checkpoint is
+  actually approved — not the moment the agent finishes running, even
+  though the skill's turn was already going to end there regardless.
+
+**Two different reasons a turn ends, not to be confused**: this rule
+governs *post*-work Checkpoints — reviewing what an agent just finished,
+before anything proceeds from it. It is a different thing from a *pre*-
+work pause like Herald's Vision Mode intake round (Product/Ideation
+Guild, "Vision Mode intake") or `/quest-ship`'s pre-deploy scope
+Checkpoint (which reviews *what to include* before Quartermaster has done
+anything yet) — those ask for input or a decision before an agent acts.
+Both kinds get called "Checkpoint" and both use the identical end-the-
+turn mechanism, but they sit at different points in an agent's work for
+different reasons; a pre-work Checkpoint is not a substitute for the
+post-work one that agent's own completed output still needs.
+`/quest-embark`'s old combined "Brief + architecture" Checkpoint is
+retired by this rule, not layered under it — it's replaced by two
+separate post-work Checkpoints, one after Herald and one after
+Loremaster, both narrower and both still reviewed before Artificer starts
+either way. `/quest-ship`'s pre-deploy scope Checkpoint is unchanged and
+keeps its place before Quartermaster; this rule only adds the two
+Checkpoints after Quartermaster and after Scribe that didn't exist
+before.
+
+**What counts as approval**: a plain go-ahead from the developer, or an
+explicit request for changes that routes back to the agent that needs to
+redo something (which may be the one that just finished, or an earlier
+one, if the issue traces upstream). Never inferred from silence or from
+the developer moving on to a different topic — the same standing rule
+every Checkpoint in this project already carries.
+
+**Each step's own state, not a retry history**: a step's `status`/
+`checkpoint` pair (schema below) reflects that agent's most recent pass
+for this phase/feature/deploy — a fix-retry cycle overwrites the previous
+pass's recorded state rather than accumulating one entry per attempt.
+This project's other progress-tracking fields already stay this lean
+(no per-attempt history anywhere else in `.quest-progress.json`); a full
+retry history is a `guild-proposals.md` candidate only if a real Quest
+turns out to need one, not assumed necessary now.
+> Enforcement: agent-reviewed — a script can check that every
+> `steps.<agent>.checkpoint` in `.quest-progress.json` reached `approved`
+> before that entry's `status` (or the phase/feature/deploy's own
+> `status`) advanced past it, the same mechanical shape the retired
+> two-point Checkpoint rule already had. Recognizing that a fix-retry
+> cycle re-enters this same rule at each loop, not only on a feature's
+> first pass through Artificer/Sentinel/Warden, is a judgment call.
 
 ### `.quest-progress.json` — schema for the three-phase model
 Replaces the single linear `steps` map the retired `/quest-flow` skill
 used. Three top-level sections, matching the three skills' own
-cardinality — one runs once, one grows per feature, one grows per deploy:
+cardinality — one runs once, one grows per feature, one grows per
+deploy — and, since "Per-agent Checkpoints" above, each of those three
+also carries a `steps` object of its own tracking every named agent that
+phase/feature/deploy involves, individually:
 
 ```json
 {
-  "version": "2.0",
+  "version": "3.0",
   "questType": "web-app",
-  "updatedAt": "2026-08-26T00:00:00Z",
+  "updatedAt": "2026-08-30T00:00:00Z",
   "foundation": {
     "status": "done",
-    "checkpoint": "approved",
+    "steps": {
+      "herald": { "status": "done", "checkpoint": "approved" },
+      "loremaster": { "status": "done", "checkpoint": "approved" },
+      "artificer": { "status": "done", "checkpoint": "approved" }
+    },
     "completedAt": "2026-08-20T00:00:00Z"
   },
   "features": [
@@ -92,19 +179,35 @@ cardinality — one runs once, one grows per feature, one grows per deploy:
       "slug": "user-auth",
       "brief": "docs/features/user-auth.md",
       "status": "done",
-      "forgedAt": "2026-08-22T00:00:00Z"
+      "forgedAt": "2026-08-22T00:00:00Z",
+      "steps": {
+        "herald": { "status": "done", "checkpoint": "approved" },
+        "artificer": { "status": "done", "checkpoint": "approved" },
+        "sentinel": { "status": "done", "checkpoint": "approved" },
+        "warden": { "status": "done", "checkpoint": "approved" }
+      }
     },
     {
       "slug": "password-reset",
       "brief": "docs/features/password-reset.md",
       "status": "in-progress",
-      "forgedAt": "2026-08-24T00:00:00Z"
+      "forgedAt": "2026-08-24T00:00:00Z",
+      "steps": {
+        "herald": { "status": "done", "checkpoint": "approved" },
+        "artificer": { "status": "done", "checkpoint": "approved" },
+        "sentinel": { "status": "in-progress", "checkpoint": "pending" },
+        "warden": { "status": "pending", "checkpoint": "pending" }
+      }
     }
   ],
   "deploys": [
     {
       "deployedAt": "2026-08-23T00:00:00Z",
       "checkpoint": "approved",
+      "steps": {
+        "quartermaster": { "status": "done", "checkpoint": "approved" },
+        "scribe": { "status": "done", "checkpoint": "approved" }
+      },
       "featuresIncluded": ["user-auth"],
       "note": "first ship — password-reset not yet forged at this point"
     }
@@ -112,25 +215,41 @@ cardinality — one runs once, one grows per feature, one grows per deploy:
 }
 ```
 
-- **`foundation`** — written once, by `/quest-embark`. `status` follows
-  the same `pending` / `in-progress` / `done` vocabulary the retired
-  `steps` map used; `checkpoint` is `pending` or `approved`, carrying the
-  same rule the retired schema had — never set to `approved` except by
-  an explicit developer confirmation, never inferred from silence or from
-  the developer moving on to another topic.
+- **`foundation`** — written once, by `/quest-embark`. Overall `status`
+  follows the same `pending` / `in-progress` / `done` vocabulary the
+  retired `steps` map used, and only reaches `done` once every entry in
+  `foundation.steps` reaches `{ "status": "done", "checkpoint":
+  "approved" }` (Per-agent Checkpoints, above) — `artificer` included,
+  since its scaffold's own Checkpoint is what actually closes out the
+  phase now, not the agent merely finishing.
 - **`features`** — an array, one entry appended per `/quest-forge
   <feature>` invocation, never removed or overwritten by a later run
   against a different feature. `slug` matches the feature's
   `docs/features/<slug>.md` filename (Herald decides the slug when it
   writes that Brief — see "Standard agent output locations" below).
   `status` tracks that one feature's own implementation/test/review
-  cycle, independent of every other entry in the array.
+  cycle, independent of every other entry in the array, and — same rule
+  as `foundation` — only reaches `done` once every entry in that
+  feature's own `steps` reaches `{ "status": "done", "checkpoint":
+  "approved" }`.
 - **`deploys`** — an array, one entry appended per `/quest-ship`
-  invocation. `featuresIncluded` records which `features[].slug` values
-  were part of *that* deploy — since `/quest-ship` runs on demand rather
-  than waiting for the full backlog, this is the only record of which
-  features actually shipped together in a given release, and it does not
+  invocation. Top-level `checkpoint` is the pre-deploy *scope* Checkpoint
+  — approving which features go in *before* Quartermaster acts — kept
+  distinct from the two per-agent Checkpoints inside `steps`, which
+  approve Quartermaster's and Scribe's completed work *after* each runs.
+  `featuresIncluded` records which `features[].slug` values were part of
+  *that* deploy — since `/quest-ship` runs on demand rather than waiting
+  for the full backlog, this is the only record of which features
+  actually shipped together in a given release, and it does not
   retroactively include features forged after that deploy already ran.
+- **Every `steps.<agent>` entry** — `{ "status": "pending" | "in-
+  progress" | "done", "checkpoint": "pending" | "approved" }`. Reflects
+  that agent's most recent pass only, not a history of every attempt —
+  see "Per-agent Checkpoints" above for why a fix-retry cycle overwrites
+  rather than appends. `checkpoint` follows the same rule the retired
+  schema already had for its one `checkpoint` field: never `approved`
+  except by an explicit developer confirmation, never inferred from
+  silence or from the developer moving on to another topic.
 > Enforcement: agent-reviewed — matches the enforcement posture the
 > retired schema's own rules carried; no script currently validates this
 > file's shape against the schema above.
@@ -154,9 +273,12 @@ those rules, or that reach outside its own skill invocation, are not.
   decision made from scratch" for the full rule.
 - **Architect** (Loremaster — `/quest-embark`; Architecture + Data Guild)
   — decides structural choices within those Guilds' defaults, including
-  whether the Quest needs a database. Does not decide to deviate from the
-  Architecture Guild's default stack without explicitly flagging the
-  deviation for `/quest-embark`'s Checkpoint.
+  whether the Quest needs a database and, when Herald's intake flagged
+  one, the mocking strategy for an external dependency (Architecture
+  Guild, "External dependencies — mocking and the integration
+  contract"). Does not decide to deviate from the Architecture Guild's
+  default stack, or its default mocking strategy, without explicitly
+  flagging the deviation for `/quest-embark`'s Checkpoint.
 - **Builder** (Artificer — `/quest-embark`'s scaffold, and every
   `/quest-forge <feature>`'s implementation; Code Style + Ops/Infra +
   Security Guild) — decides implementation details within those Guilds'
@@ -203,7 +325,9 @@ convention.
 | Herald | Product, `/quest-embark` | `docs/feature-backlog.md` | This row — formalized here as part of the three-phase orchestration model. Evidence: process change following calculator-quest retrospective, 2026-08-25. |
 | Herald | Product, `/quest-forge <feature>` | `docs/features/<slug>.md` — does not exist before that feature's `/quest-forge` invocation | This row — same evidence as above |
 | Loremaster | Architect, `/quest-embark` | `docs/architecture.md` | This row — formalized here; evidence: calculator-quest, step 3 (Loremaster). See the Architecture Guild's Purpose for the cross-reference back to this section. |
+| Loremaster | Architect, `/quest-embark` | `docs/integration-contract.md` — skeleton only; only written at all when Herald's intake flagged an external dependency | Architecture Guild, "External dependencies — mocking and the integration contract" |
 | Artificer | Builder, `/quest-embark` (scaffold) + `/quest-forge <feature>` (implementation) | The Quest's own source tree (scaffold + feature code) — not a single file | Architecture Guild, "Folder structure" |
+| Artificer | Builder, `/quest-embark` (scaffold) + `/quest-forge <feature>` (per-feature updates) | `mocks/` (fixture data) and incremental entries in `docs/integration-contract.md` — only when this Quest has an external dependency | Architecture Guild, "External dependencies — mocking and the integration contract" |
 | Sentinel | QA, `/quest-forge <feature>` | Test files co-located with the source they test (`*.test.ts` / `*.test.tsx`) | Testing/QA Guild, "File organization" |
 | Warden | Reviewer, `/quest-forge <feature>` | Not yet standardized — a real gap, not a conscious decision | — |
 | Quartermaster | Ops, `/quest-ship` | Deploys are an action, not a written artifact. A post-incident write-up, when one is warranted, goes to `/docs/incidents/YYYY-MM-DD-short-title.md` | Documentation Guild, "Post-incident documentation" |
@@ -467,6 +591,43 @@ how good the classification tooling gets.
 See the master spec, section 6.
 
 ## Changelog
+- **0.1.10** (2026-08-30) — "Standard agent output locations" gained two
+  rows for the Architecture Guild's new "External dependencies —
+  mocking and the integration contract": Loremaster's
+  `docs/integration-contract.md` skeleton at `/quest-embark`, and
+  Artificer's `mocks/` fixtures plus incremental contract entries at
+  `/quest-embark` (scaffold) and each relevant `/quest-forge`. Both only
+  apply when Herald's Vision Mode intake flagged an external dependency
+  — not every Quest gets these outputs. "Agent roles and decision
+  authority" 's Architect row now also names the mocking-strategy
+  decision explicitly, same deviation-flagging treatment as the default
+  stack. Cross-guild synchronization with the Architecture Guild's
+  `0.1.11`. Evidence: developer feedback that Quests depending on
+  another unbuilt application had no standard way to stay independently
+  testable, 2026-08-30.
+- **0.1.9** (2026-08-30) — Added "Per-agent Checkpoints — a human
+  approval after every step, in every skill": a Checkpoint now follows
+  every named agent's completed work in all three Quest-phase skills, not
+  just the two points the previous revision described (end of
+  `/quest-embark`, every `/quest-ship` run). Applies with no exceptions —
+  every agent handoff, the `/quest-forge` fix-retry cycle after a flagged
+  Warden review, and the last agent in each skill (which previously ended
+  the skill's turn without a dedicated approval of its own). Retires the
+  old combined Quest Brief + architecture Checkpoint in favor of two
+  separate ones (after Herald, after Loremaster); `/quest-ship`'s
+  pre-deploy scope Checkpoint is unchanged and now sits alongside two new
+  ones, after Quartermaster and after Scribe. Reworked "Orchestration
+  model" 's per-skill bullets and its Checkpoint-count paragraph to point
+  at this new rule instead of describing "two kinds of point." Reworked
+  "`.quest-progress.json` — schema for the three-phase model"
+  (`version` `"2.0"` → `"3.0"`): `foundation`, every `features[]` entry,
+  and every `deploys[]` entry now carry a `steps` object tracking each
+  involved agent's own `status`/`checkpoint` individually, and a phase's/
+  feature's overall `status` only reaches `done` once every one of its
+  `steps` entries does. Evidence: developer feedback that agent reports
+  were getting lost in a large conversation because the next agent had
+  already started acting on one before a human had a real chance to read
+  it, 2026-08-30.
 - **0.1.8** (2026-08-26) — Replaced every reference to the retired
   linear twelve-step flow with the three independently invocable
   Quest-phase skills — `/quest-embark` (once per Quest), `/quest-forge
